@@ -7,11 +7,15 @@ export async function fetchRequests(
   status?: string,
   source?: string,
   search?: string,
+  sortBy?: string,
+  sortDir?: string,
 ): Promise<PaginatedRequests> {
   const params: Record<string, string | number> = { page, page_size: pageSize };
   if (status) params.status = status;
   if (source) params.source = source;
   if (search) params.search = search;
+  if (sortBy) params.sort_by = sortBy;
+  if (sortDir) params.sort_dir = sortDir;
   const { data } = await client.get("/requests", { params });
   return data;
 }

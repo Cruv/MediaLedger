@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import StatCard from "../components/common/StatCard";
+import SortableHeader from "../components/common/SortableHeader";
+import { useTableSort } from "../hooks/useTableSort";
 import {
   useAnalysisStatus,
   useConfirmCorrelation,
@@ -27,6 +29,8 @@ const SCORE_BAR_COLORS: Record<string, string> = {
   moderate: "bg-yellow-500",
   low: "bg-green-500",
 };
+
+const SEVERITY_ORDER: Record<string, number> = { critical: 4, high: 3, moderate: 2, low: 1 };
 
 const TABS = ["Overview", "Correlations", "IP Analysis", "Concurrent Streams"] as const;
 type Tab = (typeof TABS)[number];
@@ -249,9 +253,44 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
 }
 
 /* ─── Tab: Overview ─── */
+type OverviewSortKey = "username" | "server_name" | "overall_score" | "severity" | "ip_diversity_score" | "concurrency_score" | "pattern_score" | "device_score" | "cross_server_score";
+
 function OverviewTab() {
   const { data, isLoading } = useSharingOverview();
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [severityFilter, setSeverityFilter] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    let list = data.scores;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((s) => s.username.toLowerCase().includes(q) || s.server_name.toLowerCase().includes(q));
+    }
+    if (severityFilter) {
+      list = list.filter((s) => s.severity === severityFilter);
+    }
+    return list;
+  }, [data, search, severityFilter]);
+
+  const { sort, toggleSort, sorted } = useTableSort<(typeof filtered)[number], OverviewSortKey>(
+    filtered,
+    "overall_score",
+    "desc",
+    (a, b, key, dir) => {
+      let cmp = 0;
+      if (key === "severity") {
+        cmp = (SEVERITY_ORDER[a.severity] ?? 0) - (SEVERITY_ORDER[b.severity] ?? 0);
+      } else {
+        const aVal = a[key];
+        const bVal = b[key];
+        if (typeof aVal === "number" && typeof bVal === "number") cmp = aVal - bVal;
+        else cmp = String(aVal).localeCompare(String(bVal), undefined, { sensitivity: "base" });
+      }
+      return dir === "asc" ? cmp : -cmp;
+    },
+  );
 
   if (isLoading) return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>;
   if (!data || data.total_users_analyzed === 0)
@@ -271,25 +310,56 @@ function OverviewTab() {
         <StatCard label="Low" value={data.low_count} />
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          type="text"
+          placeholder="Search users or servers..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+        />
+        <select
+          value={severityFilter}
+          onChange={(e) => setSeverityFilter(e.target.value)}
+          className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+        >
+          <option value="">All Severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="moderate">Moderate</option>
+          <option value="low">Low</option>
+        </select>
+        {(search || severityFilter) && (
+          <button
+            onClick={() => { setSearch(""); setSeverityFilter(""); }}
+            className="rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-400 hover:text-white"
+          >
+            Clear
+          </button>
+        )}
+        <span className="text-xs text-gray-500">{sorted.length} users</span>
+      </div>
+
       {selectedUser && <UserDetailPanel userId={selectedUser} onClose={() => setSelectedUser(null)} />}
 
       <div className="overflow-x-auto rounded-lg border border-gray-800">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-800 bg-gray-900 text-gray-400">
             <tr>
-              <th className="px-4 py-3 font-medium">User</th>
-              <th className="px-4 py-3 font-medium">Server</th>
-              <th className="px-4 py-3 font-medium">Score</th>
-              <th className="px-4 py-3 font-medium">Severity</th>
-              <th className="px-4 py-3 font-medium">IP</th>
-              <th className="px-4 py-3 font-medium">Concurrent</th>
-              <th className="px-4 py-3 font-medium">Pattern</th>
-              <th className="px-4 py-3 font-medium">Device</th>
-              <th className="px-4 py-3 font-medium">Cross-Server</th>
+              <SortableHeader label="User" sortKey="username" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Server" sortKey="server_name" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Score" sortKey="overall_score" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Severity" sortKey="severity" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="IP" sortKey="ip_diversity_score" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Concurrent" sortKey="concurrency_score" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Pattern" sortKey="pattern_score" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Device" sortKey="device_score" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Cross-Server" sortKey="cross_server_score" sort={sort} onSort={toggleSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
-            {data.scores.map((s) => (
+            {sorted.map((s) => (
               <tr
                 key={s.user_id}
                 className="cursor-pointer hover:bg-gray-900/50"
@@ -320,10 +390,31 @@ function OverviewTab() {
 }
 
 /* ─── Tab: Correlations ─── */
+type CorrSortKey = "user_a_username" | "user_b_username" | "correlation_type" | "confidence_score";
+
 function CorrelationsTab() {
   const { data, isLoading } = useCorrelations();
   const confirmMut = useConfirmCorrelation();
   const dismissMut = useDismissCorrelation();
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    if (!search) return data;
+    const q = search.toLowerCase();
+    return data.filter(
+      (c) =>
+        c.user_a_username.toLowerCase().includes(q) ||
+        c.user_b_username.toLowerCase().includes(q) ||
+        c.correlation_type.toLowerCase().includes(q),
+    );
+  }, [data, search]);
+
+  const { sort, toggleSort, sorted } = useTableSort<(typeof filtered)[number], CorrSortKey>(
+    filtered,
+    "confidence_score",
+    "desc",
+  );
 
   if (isLoading) return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>;
   if (!data || data.length === 0)
@@ -341,83 +432,121 @@ function CorrelationsTab() {
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-800">
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-gray-800 bg-gray-900 text-gray-400">
-          <tr>
-            <th className="px-4 py-3 font-medium">User A</th>
-            <th className="px-4 py-3 font-medium">User B</th>
-            <th className="px-4 py-3 font-medium">Type</th>
-            <th className="px-4 py-3 font-medium">Confidence</th>
-            <th className="px-4 py-3 font-medium">Status</th>
-            <th className="px-4 py-3 font-medium">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-800">
-          {data.map((c) => (
-            <tr key={c.id} className="hover:bg-gray-900/50">
-              <td className="px-4 py-3">
-                <span className="font-medium text-brand-400">{c.user_a_username}</span>
-                <span className="ml-1 text-xs text-gray-500">{c.user_a_server}</span>
-              </td>
-              <td className="px-4 py-3">
-                <span className="font-medium text-brand-400">{c.user_b_username}</span>
-                <span className="ml-1 text-xs text-gray-500">{c.user_b_server}</span>
-              </td>
-              <td className="px-4 py-3">
-                <span className={`rounded px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[c.correlation_type] ?? "bg-gray-800 text-gray-300"}`}>
-                  {c.correlation_type.replace("_", " ")}
-                </span>
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-16 overflow-hidden rounded-full bg-gray-800">
-                    <div
-                      className="h-full rounded-full bg-brand-500"
-                      style={{ width: `${Math.min(c.confidence_score * 100, 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-xs text-gray-400">{Math.round(c.confidence_score * 100)}%</span>
-                </div>
-              </td>
-              <td className="px-4 py-3">
-                {c.confirmed_by_admin ? (
-                  <span className="rounded bg-green-900/40 px-2 py-0.5 text-xs font-medium text-green-400">Confirmed</span>
-                ) : (
-                  <span className="rounded bg-yellow-900/40 px-2 py-0.5 text-xs font-medium text-yellow-400">Pending</span>
-                )}
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex gap-2">
-                  {!c.confirmed_by_admin && (
-                    <button
-                      onClick={() => confirmMut.mutate(c.id)}
-                      disabled={confirmMut.isPending}
-                      className="rounded bg-green-800 px-2 py-1 text-xs text-green-300 hover:bg-green-700"
-                    >
-                      Confirm
-                    </button>
-                  )}
-                  <button
-                    onClick={() => dismissMut.mutate(c.id)}
-                    disabled={dismissMut.isPending}
-                    className="rounded bg-red-900 px-2 py-1 text-xs text-red-300 hover:bg-red-800"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </td>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          type="text"
+          placeholder="Search users or type..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-400 hover:text-white"
+          >
+            Clear
+          </button>
+        )}
+        <span className="text-xs text-gray-500">{sorted.length} correlations</span>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-gray-800">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-gray-800 bg-gray-900 text-gray-400">
+            <tr>
+              <SortableHeader label="User A" sortKey="user_a_username" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="User B" sortKey="user_b_username" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Type" sortKey="correlation_type" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Confidence" sortKey="confidence_score" sort={sort} onSort={toggleSort} />
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-800">
+            {sorted.map((c) => (
+              <tr key={c.id} className="hover:bg-gray-900/50">
+                <td className="px-4 py-3">
+                  <span className="font-medium text-brand-400">{c.user_a_username}</span>
+                  <span className="ml-1 text-xs text-gray-500">{c.user_a_server}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="font-medium text-brand-400">{c.user_b_username}</span>
+                  <span className="ml-1 text-xs text-gray-500">{c.user_b_server}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`rounded px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[c.correlation_type] ?? "bg-gray-800 text-gray-300"}`}>
+                    {c.correlation_type.replace("_", " ")}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-16 overflow-hidden rounded-full bg-gray-800">
+                      <div
+                        className="h-full rounded-full bg-brand-500"
+                        style={{ width: `${Math.min(c.confidence_score * 100, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-400">{Math.round(c.confidence_score * 100)}%</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  {c.confirmed_by_admin ? (
+                    <span className="rounded bg-green-900/40 px-2 py-0.5 text-xs font-medium text-green-400">Confirmed</span>
+                  ) : (
+                    <span className="rounded bg-yellow-900/40 px-2 py-0.5 text-xs font-medium text-yellow-400">Pending</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-2">
+                    {!c.confirmed_by_admin && (
+                      <button
+                        onClick={() => confirmMut.mutate(c.id)}
+                        disabled={confirmMut.isPending}
+                        className="rounded bg-green-800 px-2 py-1 text-xs text-green-300 hover:bg-green-700"
+                      >
+                        Confirm
+                      </button>
+                    )}
+                    <button
+                      onClick={() => dismissMut.mutate(c.id)}
+                      disabled={dismissMut.isPending}
+                      className="rounded bg-red-900 px-2 py-1 text-xs text-red-300 hover:bg-red-800"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
 /* ─── Tab: IP Analysis ─── */
+type IPSortKey = "user_a_username" | "user_b_username" | "shared_ips";
+
 function IPAnalysisTab() {
   const { data, isLoading } = useIPOverlaps();
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    if (!search) return data;
+    const q = search.toLowerCase();
+    return data.filter(
+      (o) => o.user_a_username.toLowerCase().includes(q) || o.user_b_username.toLowerCase().includes(q),
+    );
+  }, [data, search]);
+
+  const { sort, toggleSort, sorted } = useTableSort<(typeof filtered)[number], IPSortKey>(
+    filtered,
+    "shared_ips",
+    "desc",
+  );
 
   if (isLoading) return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>;
   if (!data || data.length === 0)
@@ -429,19 +558,28 @@ function IPAnalysisTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-400">Users sharing one or more IP addresses, sorted by overlap count.</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-sm text-gray-400">Users sharing one or more IP addresses.</p>
+        <input
+          type="text"
+          placeholder="Search users..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="ml-auto rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+        />
+      </div>
       <div className="overflow-x-auto rounded-lg border border-gray-800">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-800 bg-gray-900 text-gray-400">
             <tr>
-              <th className="px-4 py-3 font-medium">User A</th>
-              <th className="px-4 py-3 font-medium">User B</th>
-              <th className="px-4 py-3 font-medium">Shared IPs</th>
+              <SortableHeader label="User A" sortKey="user_a_username" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="User B" sortKey="user_b_username" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Shared IPs" sortKey="shared_ips" sort={sort} onSort={toggleSort} />
               <th className="px-4 py-3 font-medium">Countries</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
-            {data.map((o, i) => (
+            {sorted.map((o, i) => (
               <tr key={i} className="hover:bg-gray-900/50">
                 <td className="px-4 py-3 font-medium text-brand-400">{o.user_a_username}</td>
                 <td className="px-4 py-3 font-medium text-brand-400">{o.user_b_username}</td>
@@ -467,8 +605,24 @@ function IPAnalysisTab() {
 }
 
 /* ─── Tab: Concurrent Streams ─── */
+type ConcSortKey = "username" | "overlap_start" | "geo_distance_km" | "same_network";
+
 function ConcurrentTab() {
   const { data, isLoading } = useConcurrentEvents();
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    if (!search) return data;
+    const q = search.toLowerCase();
+    return data.filter((e) => e.username.toLowerCase().includes(q));
+  }, [data, search]);
+
+  const { sort, toggleSort, sorted } = useTableSort<(typeof filtered)[number], ConcSortKey>(
+    filtered,
+    "overlap_start",
+    "desc",
+  );
 
   if (isLoading) return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>;
   if (!data || data.length === 0)
@@ -480,24 +634,33 @@ function ConcurrentTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-400">Instances where a user streamed from multiple locations simultaneously.</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-sm text-gray-400">Instances where a user streamed from multiple locations simultaneously.</p>
+        <input
+          type="text"
+          placeholder="Search users..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="ml-auto rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+        />
+      </div>
       <div className="overflow-x-auto rounded-lg border border-gray-800">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-gray-800 bg-gray-900 text-gray-400">
             <tr>
-              <th className="px-4 py-3 font-medium">User</th>
-              <th className="px-4 py-3 font-medium">Overlap Start</th>
+              <SortableHeader label="User" sortKey="username" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Overlap Start" sortKey="overlap_start" sort={sort} onSort={toggleSort} />
               <th className="px-4 py-3 font-medium">Overlap End</th>
               <th className="px-4 py-3 font-medium">IP A</th>
               <th className="px-4 py-3 font-medium">IP B</th>
               <th className="px-4 py-3 font-medium">Device A</th>
               <th className="px-4 py-3 font-medium">Device B</th>
-              <th className="px-4 py-3 font-medium">Distance</th>
-              <th className="px-4 py-3 font-medium">Same Net</th>
+              <SortableHeader label="Distance" sortKey="geo_distance_km" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Same Net" sortKey="same_network" sort={sort} onSort={toggleSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
-            {data.map((e) => (
+            {sorted.map((e) => (
               <tr key={e.id} className="hover:bg-gray-900/50">
                 <td className="px-4 py-3 font-medium text-brand-400">{e.username}</td>
                 <td className="px-4 py-3 text-gray-300">{new Date(e.overlap_start).toLocaleString()}</td>

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Link2 } from "lucide-react";
+import { Link2, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { useUsers } from "../hooks/useUsers";
 import { useServers } from "../hooks/useServers";
 import { useTags, useCreateTag, useDeleteTag, useAssignTag } from "../hooks/useTags";
+
+type UserSortKey = "username" | "server_name" | "last_activity_at";
 
 function formatWatchTime(sec?: number): string {
   if (!sec) return "0m";
@@ -27,6 +29,18 @@ export default function Users() {
   const [showTagManager, setShowTagManager] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState("#6366f1");
+  const [sortBy, setSortBy] = useState<UserSortKey>("username");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  function toggleSort(key: UserSortKey) {
+    if (sortBy === key) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortBy(key);
+      setSortDir(key === "last_activity_at" ? "desc" : "asc");
+    }
+    setPage(1);
+  }
 
   const { data: servers } = useServers();
   const { data: tags } = useTags();
@@ -35,6 +49,8 @@ export default function Users() {
     search: search || undefined,
     serverId: serverId || undefined,
     tagId: tagId || undefined,
+    sortBy,
+    sortDir,
   });
 
   const createTag = useCreateTag();
@@ -226,13 +242,36 @@ export default function Users() {
                       className="rounded border-gray-600 bg-gray-800 text-brand-500"
                     />
                   </th>
-                  <th className="px-4 py-3 font-medium">Username</th>
-                  <th className="px-4 py-3 font-medium">Server</th>
+                  {(["username", "server_name", "last_activity_at"] as const).map((key) => {
+                    const labels: Record<UserSortKey, string> = { username: "Username", server_name: "Server", last_activity_at: "Last Activity" };
+                    if (key === "username") return (
+                      <th key={key} className={`px-4 py-3 font-medium cursor-pointer select-none hover:text-gray-200 ${sortBy === key ? "text-gray-200" : ""}`} onClick={() => toggleSort(key)}>
+                        <span className="inline-flex items-center gap-1">
+                          {labels[key]}
+                          {sortBy === key ? (sortDir === "asc" ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />) : <ChevronsUpDown className="h-3.5 w-3.5 opacity-30" />}
+                        </span>
+                      </th>
+                    );
+                    if (key === "server_name") return (
+                      <th key={key} className={`px-4 py-3 font-medium cursor-pointer select-none hover:text-gray-200 ${sortBy === key ? "text-gray-200" : ""}`} onClick={() => toggleSort(key)}>
+                        <span className="inline-flex items-center gap-1">
+                          {labels[key]}
+                          {sortBy === key ? (sortDir === "asc" ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />) : <ChevronsUpDown className="h-3.5 w-3.5 opacity-30" />}
+                        </span>
+                      </th>
+                    );
+                    return null;
+                  })}
                   <th className="px-4 py-3 font-medium">Linked</th>
                   <th className="px-4 py-3 font-medium">Tags</th>
                   <th className="px-4 py-3 font-medium">Total Plays</th>
                   <th className="px-4 py-3 font-medium">Watch Time</th>
-                  <th className="px-4 py-3 font-medium">Last Activity</th>
+                  <th className={`px-4 py-3 font-medium cursor-pointer select-none hover:text-gray-200 ${sortBy === "last_activity_at" ? "text-gray-200" : ""}`} onClick={() => toggleSort("last_activity_at")}>
+                    <span className="inline-flex items-center gap-1">
+                      Last Activity
+                      {sortBy === "last_activity_at" ? (sortDir === "asc" ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />) : <ChevronsUpDown className="h-3.5 w-3.5 opacity-30" />}
+                    </span>
+                  </th>
                   <th className="px-4 py-3 font-medium">Status</th>
                 </tr>
               </thead>

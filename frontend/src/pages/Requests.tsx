@@ -1,7 +1,11 @@
 import { useState } from "react";
 import StatCard from "../components/common/StatCard";
+import SortableHeader from "../components/common/SortableHeader";
 import { useCreateRequest, useDeleteRequest, useRequests, useRequestStats } from "../hooks/useRequests";
 import type { RequestCreate } from "../types/request";
+import type { SortConfig } from "../hooks/useTableSort";
+
+type ReqSortKey = "title" | "item_type" | "status" | "requested_at" | "fulfilled_at";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All Statuses" },
@@ -35,6 +39,20 @@ export default function Requests() {
   const [sourceFilter, setSourceFilter] = useState("");
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [sortBy, setSortBy] = useState<ReqSortKey>("requested_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const sort: SortConfig<ReqSortKey> = { key: sortBy, direction: sortDir };
+
+  function toggleSort(key: ReqSortKey) {
+    if (sortBy === key) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortBy(key);
+      setSortDir("desc");
+    }
+    setPage(1);
+  }
 
   const { data, isLoading } = useRequests(
     page,
@@ -42,6 +60,8 @@ export default function Requests() {
     statusFilter || undefined,
     sourceFilter || undefined,
     search || undefined,
+    sortBy,
+    sortDir,
   );
   const { data: stats } = useRequestStats();
   const createMut = useCreateRequest();
@@ -202,12 +222,12 @@ export default function Requests() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-gray-800 bg-gray-900 text-gray-400">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Title</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
+                  <SortableHeader label="Title" sortKey="title" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Type" sortKey="item_type" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Status" sortKey="status" sort={sort} onSort={toggleSort} />
                   <th className="px-4 py-3 font-medium">Source</th>
-                  <th className="px-4 py-3 font-medium">Requested</th>
-                  <th className="px-4 py-3 font-medium">Fulfilled</th>
+                  <SortableHeader label="Requested" sortKey="requested_at" sort={sort} onSort={toggleSort} />
+                  <SortableHeader label="Fulfilled" sortKey="fulfilled_at" sort={sort} onSort={toggleSort} />
                   <th className="px-4 py-3 font-medium">First Watched</th>
                   <th className="px-4 py-3 font-medium"></th>
                 </tr>

@@ -30,6 +30,8 @@ async def list_users(
     server_id: Optional[uuid.UUID] = None,
     search: Optional[str] = None,
     tag_id: Optional[uuid.UUID] = None,
+    sort_by: str = Query("username", pattern="^(username|server_name|last_activity_at)$"),
+    sort_dir: str = Query("asc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -61,8 +63,16 @@ async def list_users(
 
     total = (await db.execute(count_q)).scalar() or 0
 
+    _user_sort_map = {
+        "username": MediaServerUser.username,
+        "server_name": Server.name,
+        "last_activity_at": MediaServerUser.last_activity_at,
+    }
+    sort_col = _user_sort_map.get(sort_by, MediaServerUser.username)
+    order = sort_col.asc() if sort_dir == "asc" else sort_col.desc()
+
     offset = (page - 1) * page_size
-    query = base.order_by(MediaServerUser.username).offset(offset).limit(page_size)
+    query = base.order_by(order).offset(offset).limit(page_size)
     result = await db.execute(query)
 
     users = []

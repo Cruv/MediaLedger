@@ -11,6 +11,8 @@ export interface SessionHistoryFilters {
   completed_only?: boolean;
   item_type?: string;
   search?: string;
+  sort_by?: string;
+  sort_dir?: "asc" | "desc";
 }
 
 export async function getActiveSessions(): Promise<ActiveSession[]> {

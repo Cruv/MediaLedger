@@ -1,9 +1,12 @@
 import { useState, useMemo } from "react";
+import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { useSessionHistory, useSessionStats } from "../hooks/useSessions";
 import { useServers } from "../hooks/useServers";
 import { getExportUrl } from "../api/sessions";
 import type { SessionHistoryFilters } from "../api/sessions";
 import StatCard from "../components/common/StatCard";
+
+type SortKey = "item_title" | "username" | "server_name" | "started_at" | "play_duration_sec" | "watched_pct";
 
 function formatDuration(sec: number): string {
   const h = Math.floor(sec / 3600);
@@ -36,6 +39,41 @@ function getDisplayTitle(h: {
   return h.item_title || "Unknown";
 }
 
+function SortTh({
+  label,
+  sortKey,
+  currentKey,
+  currentDir,
+  onSort,
+  align = "left",
+}: {
+  label: string;
+  sortKey: SortKey;
+  currentKey: SortKey;
+  currentDir: "asc" | "desc";
+  onSort: (key: SortKey) => void;
+  align?: "left" | "right";
+}) {
+  const active = currentKey === sortKey;
+  return (
+    <th
+      className={`px-4 py-3 font-medium cursor-pointer select-none hover:text-gray-200 transition-colors ${
+        align === "right" ? "text-right" : "text-left"
+      } ${active ? "text-gray-200" : ""}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active ? (
+          currentDir === "asc" ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronsUpDown className="h-3.5 w-3.5 opacity-30" />
+        )}
+      </span>
+    </th>
+  );
+}
+
 export default function Sessions() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -44,11 +82,23 @@ export default function Sessions() {
   const [completedOnly, setCompletedOnly] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [sortBy, setSortBy] = useState<SortKey>("started_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const { data: servers } = useServers();
 
+  function toggleSort(key: SortKey) {
+    if (sortBy === key) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortBy(key);
+      setSortDir("desc");
+    }
+    setPage(1);
+  }
+
   const filters: SessionHistoryFilters = useMemo(() => {
-    const f: SessionHistoryFilters = { page, page_size: 25 };
+    const f: SessionHistoryFilters = { page, page_size: 25, sort_by: sortBy, sort_dir: sortDir };
     if (search) f.search = search;
     if (serverId) f.server_id = serverId;
     if (itemType) f.item_type = itemType;
@@ -56,10 +106,10 @@ export default function Sessions() {
     if (startDate) f.start_date = startDate;
     if (endDate) f.end_date = endDate;
     return f;
-  }, [page, search, serverId, itemType, completedOnly, startDate, endDate]);
+  }, [page, search, serverId, itemType, completedOnly, startDate, endDate, sortBy, sortDir]);
 
   const statsFilters = useMemo(() => {
-    const { page: _, page_size: __, ...rest } = filters;
+    const { page: _, page_size: __, sort_by: _s, sort_dir: _d, ...rest } = filters;
     return rest;
   }, [filters]);
 
@@ -208,14 +258,14 @@ export default function Sessions() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-gray-800 bg-gray-900 text-gray-400">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Title</th>
-                  <th className="px-4 py-3 font-medium">User</th>
-                  <th className="px-4 py-3 font-medium">Server</th>
+                  <SortTh label="Title" sortKey="item_title" currentKey={sortBy} currentDir={sortDir} onSort={toggleSort} />
+                  <SortTh label="User" sortKey="username" currentKey={sortBy} currentDir={sortDir} onSort={toggleSort} />
+                  <SortTh label="Server" sortKey="server_name" currentKey={sortBy} currentDir={sortDir} onSort={toggleSort} />
                   <th className="px-4 py-3 font-medium">Platform</th>
                   <th className="px-4 py-3 font-medium">IP Address</th>
-                  <th className="px-4 py-3 font-medium">Started</th>
-                  <th className="px-4 py-3 font-medium">Duration</th>
-                  <th className="px-4 py-3 font-medium">Watched</th>
+                  <SortTh label="Started" sortKey="started_at" currentKey={sortBy} currentDir={sortDir} onSort={toggleSort} />
+                  <SortTh label="Duration" sortKey="play_duration_sec" currentKey={sortBy} currentDir={sortDir} onSort={toggleSort} />
+                  <SortTh label="Watched" sortKey="watched_pct" currentKey={sortBy} currentDir={sortDir} onSort={toggleSort} align="right" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
@@ -236,7 +286,7 @@ export default function Sessions() {
                       })}
                     </td>
                     <td className="px-4 py-3 text-gray-400">{formatDuration(h.play_duration_sec)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-right">
                       <span className={h.completed ? "text-green-400" : "text-yellow-400"}>
                         {Math.round(h.watched_pct)}%
                       </span>

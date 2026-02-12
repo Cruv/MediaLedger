@@ -1,4 +1,6 @@
 import { useState } from "react";
+import SortableHeader from "../components/common/SortableHeader";
+import { useTableSort } from "../hooks/useTableSort";
 import {
   useUnwatched,
   useCompletionRates,
@@ -8,9 +10,17 @@ import {
 
 type Tab = "popularity" | "completion" | "unwatched" | "libraries";
 
+type PopSortKey = "title" | "type" | "plays" | "unique_viewers" | "total_hours" | "avg_watched_pct";
+
 function PopularityTab() {
   const [days, setDays] = useState(7);
   const { data } = usePopularity(days);
+
+  const { sort, toggleSort, sorted } = useTableSort<NonNullable<typeof data>["items"][number], PopSortKey>(
+    data?.items,
+    "plays",
+    "desc",
+  );
 
   return (
     <div className="space-y-4">
@@ -39,16 +49,16 @@ function PopularityTab() {
             <thead>
               <tr className="border-b border-gray-800 bg-gray-900/60 text-left text-xs text-gray-500">
                 <th className="px-4 py-2 font-medium w-8">#</th>
-                <th className="px-4 py-2 font-medium">Title</th>
-                <th className="px-4 py-2 font-medium">Type</th>
-                <th className="px-4 py-2 font-medium text-right">Plays</th>
-                <th className="px-4 py-2 font-medium text-right">Viewers</th>
-                <th className="px-4 py-2 font-medium text-right">Hours</th>
-                <th className="px-4 py-2 font-medium text-right">Avg %</th>
+                <SortableHeader label="Title" sortKey="title" sort={sort} onSort={toggleSort} className="text-xs" />
+                <SortableHeader label="Type" sortKey="type" sort={sort} onSort={toggleSort} className="text-xs" />
+                <SortableHeader label="Plays" sortKey="plays" sort={sort} onSort={toggleSort} align="right" className="text-xs" />
+                <SortableHeader label="Viewers" sortKey="unique_viewers" sort={sort} onSort={toggleSort} align="right" className="text-xs" />
+                <SortableHeader label="Hours" sortKey="total_hours" sort={sort} onSort={toggleSort} align="right" className="text-xs" />
+                <SortableHeader label="Avg %" sortKey="avg_watched_pct" sort={sort} onSort={toggleSort} align="right" className="text-xs" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/60">
-              {data.items.map((item, i) => (
+              {sorted.map((item, i) => (
                 <tr key={i} className="bg-gray-900">
                   <td className="px-4 py-2.5 text-gray-600 font-mono">{i + 1}</td>
                   <td className="px-4 py-2.5 text-gray-200 font-medium">{item.title}</td>
@@ -75,9 +85,17 @@ function PopularityTab() {
   );
 }
 
+type DropSortKey = "title" | "total_plays" | "completed" | "completion_rate" | "avg_watched_pct";
+
 function CompletionTab() {
   const [days, setDays] = useState(30);
   const { data } = useCompletionRates(days);
+
+  const { sort, toggleSort, sorted } = useTableSort<NonNullable<NonNullable<typeof data>["most_dropped"]>[number], DropSortKey>(
+    data?.most_dropped ?? undefined,
+    "completion_rate",
+    "asc",
+  );
 
   return (
     <div className="space-y-6">
@@ -121,22 +139,22 @@ function CompletionTab() {
       )}
 
       {/* Most dropped */}
-      {data?.most_dropped && data.most_dropped.length > 0 && (
+      {sorted.length > 0 && (
         <div>
           <h3 className="mb-2 text-sm font-semibold text-gray-400">Most Dropped Content</h3>
           <div className="overflow-x-auto rounded-lg border border-gray-800">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800 bg-gray-900/60 text-left text-xs text-gray-500">
-                  <th className="px-4 py-2 font-medium">Title</th>
-                  <th className="px-4 py-2 font-medium text-right">Plays</th>
-                  <th className="px-4 py-2 font-medium text-right">Completed</th>
-                  <th className="px-4 py-2 font-medium text-right">Rate</th>
-                  <th className="px-4 py-2 font-medium text-right">Avg %</th>
+                  <SortableHeader label="Title" sortKey="title" sort={sort} onSort={toggleSort} className="text-xs" />
+                  <SortableHeader label="Plays" sortKey="total_plays" sort={sort} onSort={toggleSort} align="right" className="text-xs" />
+                  <SortableHeader label="Completed" sortKey="completed" sort={sort} onSort={toggleSort} align="right" className="text-xs" />
+                  <SortableHeader label="Rate" sortKey="completion_rate" sort={sort} onSort={toggleSort} align="right" className="text-xs" />
+                  <SortableHeader label="Avg %" sortKey="avg_watched_pct" sort={sort} onSort={toggleSort} align="right" className="text-xs" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800/60">
-                {data.most_dropped.map((item, i) => (
+                {sorted.map((item, i) => (
                   <tr key={i} className="bg-gray-900">
                     <td className="px-4 py-2.5 text-gray-200">{item.title}</td>
                     <td className="px-4 py-2.5 text-right text-gray-400">{item.total_plays}</td>
@@ -158,9 +176,17 @@ function CompletionTab() {
   );
 }
 
+type UnwatchedSortKey = "title" | "type" | "year" | "added_at" | "library";
+
 function UnwatchedTab() {
   const [daysSince, setDaysSince] = useState(30);
   const { data } = useUnwatched({ days_since_added: daysSince });
+
+  const { sort, toggleSort, sorted } = useTableSort<NonNullable<typeof data>["items"][number], UnwatchedSortKey>(
+    data?.items,
+    "added_at",
+    "asc",
+  );
 
   return (
     <div className="space-y-4">
@@ -194,16 +220,16 @@ function UnwatchedTab() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 bg-gray-900/60 text-left text-xs text-gray-500">
-                <th className="px-4 py-2 font-medium">Title</th>
-                <th className="px-4 py-2 font-medium">Type</th>
-                <th className="px-4 py-2 font-medium">Year</th>
-                <th className="px-4 py-2 font-medium">Added</th>
-                <th className="px-4 py-2 font-medium">Library</th>
-                <th className="px-4 py-2 font-medium">Genres</th>
+                <SortableHeader label="Title" sortKey="title" sort={sort} onSort={toggleSort} className="text-xs" />
+                <SortableHeader label="Type" sortKey="type" sort={sort} onSort={toggleSort} className="text-xs" />
+                <SortableHeader label="Year" sortKey="year" sort={sort} onSort={toggleSort} className="text-xs" />
+                <SortableHeader label="Added" sortKey="added_at" sort={sort} onSort={toggleSort} className="text-xs" />
+                <SortableHeader label="Library" sortKey="library" sort={sort} onSort={toggleSort} className="text-xs" />
+                <th className="px-4 py-2 font-medium text-xs">Genres</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800/60">
-              {data.items.map((item) => (
+              {sorted.map((item) => (
                 <tr key={item.id} className="bg-gray-900">
                   <td className="px-4 py-2.5 text-gray-200">{item.title}</td>
                   <td className="px-4 py-2.5">

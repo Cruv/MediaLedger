@@ -196,6 +196,16 @@ async def export_session_history(
     )
 
 
+_SESSION_SORT_MAP = {
+    "started_at": SessionHistory.started_at,
+    "username": MediaServerUser.username,
+    "server_name": Server.name,
+    "play_duration_sec": SessionHistory.play_duration_sec,
+    "watched_pct": SessionHistory.watched_pct,
+    "item_title": SessionHistory.item_title,
+}
+
+
 @router.get("/history", response_model=PaginatedSessionHistory)
 async def get_session_history(
     server_id: Optional[uuid.UUID] = None,
@@ -205,6 +215,8 @@ async def get_session_history(
     completed_only: bool = False,
     item_type: Optional[str] = None,
     search: Optional[str] = None,
+    sort_by: str = Query("started_at", pattern="^(started_at|username|server_name|play_duration_sec|watched_pct|item_title)$"),
+    sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -224,8 +236,11 @@ async def get_session_history(
 
     total = (await db.execute(count_q)).scalar() or 0
 
+    sort_col = _SESSION_SORT_MAP.get(sort_by, SessionHistory.started_at)
+    order = sort_col.asc() if sort_dir == "asc" else sort_col.desc()
+
     offset = (page - 1) * page_size
-    query = base.order_by(SessionHistory.started_at.desc()).offset(offset).limit(page_size)
+    query = base.order_by(order).offset(offset).limit(page_size)
     result = await db.execute(query)
 
     items = []

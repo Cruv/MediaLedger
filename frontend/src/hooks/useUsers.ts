@@ -7,11 +7,13 @@ interface UseUsersParams {
   search?: string;
   serverId?: string;
   tagId?: string;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
 }
 
-export function useUsers({ page = 1, pageSize = 25, search, serverId, tagId }: UseUsersParams = {}) {
+export function useUsers({ page = 1, pageSize = 25, search, serverId, tagId, sortBy, sortDir }: UseUsersParams = {}) {
   return useQuery({
-    queryKey: ["users", page, pageSize, search, serverId, tagId],
+    queryKey: ["users", page, pageSize, search, serverId, tagId, sortBy, sortDir],
     queryFn: () =>
       listUsers({
         page,
@@ -19,6 +21,8 @@ export function useUsers({ page = 1, pageSize = 25, search, serverId, tagId }: U
         search: search || undefined,
         server_id: serverId || undefined,
         tag_id: tagId || undefined,
+        sort_by: sortBy || undefined,
+        sort_dir: sortDir || undefined,
       }),
   });
 }

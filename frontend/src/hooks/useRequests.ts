@@ -8,10 +8,12 @@ export function useRequests(
   status?: string,
   source?: string,
   search?: string,
+  sortBy?: string,
+  sortDir?: string,
 ) {
   return useQuery({
-    queryKey: ["requests", page, pageSize, status, source, search],
-    queryFn: () => fetchRequests(page, pageSize, status, source, search),
+    queryKey: ["requests", page, pageSize, status, source, search, sortBy, sortDir],
+    queryFn: () => fetchRequests(page, pageSize, status, source, search, sortBy, sortDir),
   });
 }
 

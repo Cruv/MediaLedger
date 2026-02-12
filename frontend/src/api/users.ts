@@ -7,6 +7,8 @@ export async function listUsers(params?: {
   search?: string;
   server_id?: string;
   tag_id?: string;
+  sort_by?: string;
+  sort_dir?: "asc" | "desc";
 }): Promise<PaginatedUsers> {
   const { data } = await apiClient.get<PaginatedUsers>("/users/", { params });
   return data;

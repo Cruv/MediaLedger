@@ -45,6 +45,15 @@ def _build_response(req: MediaRequest, requested_by_username: str | None = None,
     )
 
 
+_REQUEST_SORT_MAP = {
+    "requested_at": MediaRequest.requested_at,
+    "title": MediaRequest.title,
+    "status": MediaRequest.status,
+    "item_type": MediaRequest.item_type,
+    "fulfilled_at": MediaRequest.fulfilled_at,
+}
+
+
 @router.get("/", response_model=PaginatedRequests)
 async def list_requests(
     page: int = Query(1, ge=1),
@@ -52,6 +61,8 @@ async def list_requests(
     status: Optional[str] = None,
     source: Optional[str] = None,
     search: Optional[str] = None,
+    sort_by: str = Query("requested_at", pattern="^(requested_at|title|status|item_type|fulfilled_at)$"),
+    sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db),
 ):
     """List all media requests with pagination and filters."""
@@ -69,9 +80,11 @@ async def list_requests(
     total = (await db.execute(count_q)).scalar() or 0
 
     # Fetch page
+    sort_col = _REQUEST_SORT_MAP.get(sort_by, MediaRequest.requested_at)
+    order = sort_col.asc() if sort_dir == "asc" else sort_col.desc()
     rows_q = (
         base
-        .order_by(MediaRequest.requested_at.desc())
+        .order_by(order)
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
