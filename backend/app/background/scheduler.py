@@ -13,7 +13,7 @@ from app.models.server import Server
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(timezone="UTC")
 pinger = ActivityPinger(processor=ActivityProcessor())
 
 
