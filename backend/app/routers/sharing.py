@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +16,8 @@ from app.schemas.sharing import (
     SharingScoreDetailResponse,
     SharingScoreResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -34,7 +38,7 @@ def _build_score_response(
     return SharingScoreResponse(
         user_id=str(score.user_id),
         username=username,
-        server_name=server_name,
+        server_name=server_name or "Unknown",
         overall_score=score.overall_score,
         ip_diversity_score=score.ip_diversity_score,
         concurrency_score=score.concurrency_score,
@@ -54,7 +58,7 @@ async def get_sharing_overview(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(SharingScore, MediaServerUser.username, Server.name.label("server_name"))
         .join(MediaServerUser, SharingScore.user_id == MediaServerUser.id)
-        .join(Server, MediaServerUser.server_id == Server.id)
+        .outerjoin(Server, MediaServerUser.server_id == Server.id)
         .order_by(SharingScore.overall_score.desc())
     )
     rows = result.all()
@@ -230,7 +234,7 @@ async def get_concurrent_events(
     ]
 
 
-@router.post("/analyze", status_code=202)
+@router.post("/analyze")
 async def trigger_analysis(db: AsyncSession = Depends(get_db)):
     """Manually trigger sharing analysis for all users."""
     from app.sharing_engine.analyzer import SharingAnalyzer
@@ -242,14 +246,17 @@ async def trigger_analysis(db: AsyncSession = Depends(get_db)):
     user_ids = [str(r[0]) for r in result.all()]
 
     analyzed = 0
+    errors = 0
     for uid in user_ids:
         try:
             await analyzer.analyze_user(db, uid)
             analyzed += 1
         except Exception:
-            pass
+            errors += 1
+            logger.exception("Failed to analyze user %s", uid)
 
     await db.commit()
+    logger.info("Sharing analysis complete: %d/%d users (%d errors)", analyzed, len(user_ids), errors)
     return {"message": f"Analysis complete for {analyzed}/{len(user_ids)} users"}
 
 
@@ -260,7 +267,7 @@ async def get_sharing_detail(user_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(SharingScore, MediaServerUser.username, Server.name.label("server_name"))
         .join(MediaServerUser, SharingScore.user_id == MediaServerUser.id)
-        .join(Server, MediaServerUser.server_id == Server.id)
+        .outerjoin(Server, MediaServerUser.server_id == Server.id)
         .where(SharingScore.user_id == user_id)
     )
     row = result.first()
@@ -271,7 +278,7 @@ async def get_sharing_detail(user_id: str, db: AsyncSession = Depends(get_db)):
     return SharingScoreDetailResponse(
         user_id=str(score.user_id),
         username=username,
-        server_name=server_name,
+        server_name=server_name or "Unknown",
         overall_score=score.overall_score,
         ip_diversity_score=score.ip_diversity_score,
         concurrency_score=score.concurrency_score,

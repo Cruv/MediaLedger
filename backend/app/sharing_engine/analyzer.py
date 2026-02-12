@@ -71,9 +71,9 @@ class SharingAnalyzer:
             "weights": self.weights,
         }
 
-        # Upsert sharing score
-        score_obj = SharingScore(
-            user_id=uuid.UUID(user_id),
+        # Upsert sharing score using PostgreSQL ON CONFLICT
+        uid = uuid.UUID(user_id)
+        values = dict(
             overall_score=overall,
             ip_diversity_score=round(ip_score, 1),
             concurrency_score=round(conc_score, 1),
@@ -85,28 +85,19 @@ class SharingAnalyzer:
             evidence_json=evidence,
             computed_at=now,
         )
-
-        # Check if score already exists for this user
-        existing = await db.execute(
-            select(SharingScore).where(SharingScore.user_id == user_id)
+        stmt = pg_insert(SharingScore).values(user_id=uid, **values)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[SharingScore.user_id],
+            set_=values,
         )
-        existing_score = existing.scalar_one_or_none()
-        if existing_score:
-            existing_score.overall_score = overall
-            existing_score.ip_diversity_score = round(ip_score, 1)
-            existing_score.concurrency_score = round(conc_score, 1)
-            existing_score.pattern_score = round(pattern_score, 1)
-            existing_score.device_score = round(device_score, 1)
-            existing_score.cross_server_score = round(cross_score, 1)
-            existing_score.analysis_window_start = window_start
-            existing_score.analysis_window_end = window_end
-            existing_score.evidence_json = evidence
-            existing_score.computed_at = now
-            score_obj = existing_score
-        else:
-            db.add(score_obj)
-
+        await db.execute(stmt)
         await db.flush()
+
+        # Fetch the row back so we can return it
+        result = await db.execute(
+            select(SharingScore).where(SharingScore.user_id == uid)
+        )
+        score_obj = result.scalar_one()
 
         logger.info(
             "Sharing score for user %s: overall=%.1f (ip=%.1f conc=%.1f pat=%.1f dev=%.1f cross=%.1f)",

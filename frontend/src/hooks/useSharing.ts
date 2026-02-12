@@ -31,6 +31,9 @@ export function useTriggerAnalysis() {
     mutationFn: triggerAnalysis,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sharing-overview"] });
+      qc.invalidateQueries({ queryKey: ["sharing-correlations"] });
+      qc.invalidateQueries({ queryKey: ["sharing-ip-overlaps"] });
+      qc.invalidateQueries({ queryKey: ["sharing-concurrent-events"] });
     },
   });
 }

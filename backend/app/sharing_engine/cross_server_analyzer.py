@@ -1,5 +1,6 @@
 """Cross-server correlation analyzer — detects the same person on Emby + Jellyfin."""
 import logging
+import uuid as uuid_mod
 from datetime import datetime
 
 from sqlalchemy import func, select
@@ -21,8 +22,8 @@ async def analyze_cross_server(
     Returns (score 0-100, evidence dict).
     Looks for other users (on different servers) who share IPs, devices, or username.
     """
-    # Get this user
-    user = await db.get(MediaServerUser, user_id)
+    # Get this user (ensure UUID type for db.get primary key lookup)
+    user = await db.get(MediaServerUser, uuid_mod.UUID(user_id) if isinstance(user_id, str) else user_id)
     if not user:
         return 0.0, {"reason": "user_not_found"}
 
