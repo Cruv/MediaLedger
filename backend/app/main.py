@@ -35,7 +35,7 @@ def create_app() -> FastAPI:
     )
 
     from app.routers import (
-        alerts, auth, dashboard, graphs, libraries, notifications,
+        alerts, audit, auth, dashboard, graphs, libraries, notifications,
         recently_added, requests, servers, sessions, sharing, tags, users,
         webhooks,
     )
@@ -57,6 +57,7 @@ def create_app() -> FastAPI:
     app.include_router(tags.router, prefix="/api/tags", tags=["tags"])
     app.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
     app.include_router(recently_added.router, prefix="/api/recently-added", tags=["recently-added"])
+    app.include_router(audit.router, prefix="/api", tags=["audit"])
 
     @app.get("/api/health")
     async def health():

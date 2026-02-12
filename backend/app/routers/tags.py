@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.audit import log_action
 from app.db.session import get_db
 from app.models.tags import UserTag, UserTagAssignment
 from app.schemas.tags import AssignTagRequest, UserTagCreate, UserTagResponse, UserTagUpdate
@@ -44,6 +45,7 @@ async def create_tag(body: UserTagCreate, db: AsyncSession = Depends(get_db)):
 
     tag = UserTag(name=body.name, color=body.color, description=body.description)
     db.add(tag)
+    await log_action(db, "tag.created", "tag", target_label=body.name)
     await db.commit()
     await db.refresh(tag)
     return UserTagResponse(
@@ -84,6 +86,7 @@ async def delete_tag(tag_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     tag = await db.get(UserTag, tag_id)
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
+    await log_action(db, "tag.deleted", "tag", target_id=str(tag_id), target_label=tag.name)
     await db.delete(tag)
     await db.commit()
 
@@ -103,12 +106,24 @@ async def assign_tag(tag_id: uuid.UUID, body: AssignTagRequest, db: AsyncSession
         )
         if not existing.scalar_one_or_none():
             db.add(UserTagAssignment(user_id=user_id, tag_id=tag_id))
+            await log_action(
+                db, "tag.assigned", "user",
+                target_id=str(user_id),
+                details={"tag": tag.name, "tag_id": str(tag_id)},
+            )
 
     await db.commit()
 
 
 @router.post("/{tag_id}/unassign", status_code=204)
 async def unassign_tag(tag_id: uuid.UUID, body: AssignTagRequest, db: AsyncSession = Depends(get_db)):
+    tag = await db.get(UserTag, tag_id)
+    for user_id in body.user_ids:
+        await log_action(
+            db, "tag.unassigned", "user",
+            target_id=str(user_id),
+            details={"tag": tag.name if tag else str(tag_id), "tag_id": str(tag_id)},
+        )
     await db.execute(
         delete(UserTagAssignment).where(
             UserTagAssignment.tag_id == tag_id,

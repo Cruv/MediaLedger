@@ -13,6 +13,7 @@ from app.models.notification import NotificationAgent, NotificationLog
 from app.models.settings import AppSetting
 from app.models.tags import UserTag, UserTagAssignment
 from app.models.alerts import AlertRule, AlertEvent
+from app.models.audit import UserNote, AdminAuditLog
 
 __all__ = [
     "Server",
@@ -34,4 +35,6 @@ __all__ = [
     "UserTagAssignment",
     "AlertRule",
     "AlertEvent",
+    "UserNote",
+    "AdminAuditLog",
 ]

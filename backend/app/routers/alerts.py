@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.audit import log_action
 from app.db.session import get_db
 from app.models.alerts import AlertEvent, AlertRule
 from app.schemas.alerts import (
@@ -158,6 +159,11 @@ async def resolve_event(event_id: uuid.UUID, db: AsyncSession = Depends(get_db))
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     event.resolved = True
+    await log_action(
+        db, "alert.resolved", "alert_event",
+        target_id=str(event_id),
+        details={"rule_id": str(event.rule_id)},
+    )
     await db.commit()
 
 

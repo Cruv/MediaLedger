@@ -10,6 +10,7 @@ import {
   ListChecks,
   Bell,
   ShieldAlert,
+  ScrollText,
   Settings,
 } from "lucide-react";
 import { useUnresolvedCount } from "../../hooks/useAlerts";
@@ -24,6 +25,7 @@ const links = [
   { to: "/requests", label: "Requests", icon: ListChecks },
   { to: "/alerts", label: "Alerts", icon: Bell, badge: true },
   { to: "/sharing", label: "Sharing", icon: ShieldAlert },
+  { to: "/audit-log", label: "Audit Log", icon: ScrollText },
   { to: "/servers", label: "Servers", icon: Server },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
