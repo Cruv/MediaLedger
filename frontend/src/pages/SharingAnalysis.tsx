@@ -79,39 +79,39 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
         ))}
       </div>
 
-      {evidence.ip && (
+      {!!evidence.ip && (
         <div className="text-sm">
           <p className="font-medium text-gray-300">IP Analysis</p>
           <p className="text-gray-500">
-            {(evidence.ip as Record<string, unknown>).unique_ips} unique IPs,{" "}
-            {(evidence.ip as Record<string, unknown>).unique_countries} countries,{" "}
-            max distance: {(evidence.ip as Record<string, unknown>).max_distance_km}km
+            {String((evidence.ip as Record<string, unknown>).unique_ips)} unique IPs,{" "}
+            {String((evidence.ip as Record<string, unknown>).unique_countries)} countries,{" "}
+            max distance: {String((evidence.ip as Record<string, unknown>).max_distance_km)}km
           </p>
         </div>
       )}
-      {evidence.concurrency && (
+      {!!evidence.concurrency && (
         <div className="text-sm">
           <p className="font-medium text-gray-300">Concurrency</p>
           <p className="text-gray-500">
-            {(evidence.concurrency as Record<string, unknown>).overlapping_events} overlapping events,{" "}
-            {(evidence.concurrency as Record<string, unknown>).different_ip_overlaps} from different IPs
+            {String((evidence.concurrency as Record<string, unknown>).overlapping_events)} overlapping events,{" "}
+            {String((evidence.concurrency as Record<string, unknown>).different_ip_overlaps)} from different IPs
           </p>
         </div>
       )}
-      {evidence.device && (
+      {!!evidence.device && (
         <div className="text-sm">
           <p className="font-medium text-gray-300">Devices</p>
           <p className="text-gray-500">
-            {(evidence.device as Record<string, unknown>).device_count} devices,{" "}
-            {(evidence.device as Record<string, unknown>).shared_device_count} shared with other users
+            {String((evidence.device as Record<string, unknown>).device_count)} devices,{" "}
+            {String((evidence.device as Record<string, unknown>).shared_device_count)} shared with other users
           </p>
         </div>
       )}
-      {evidence.cross_server && (
+      {!!evidence.cross_server && (
         <div className="text-sm">
           <p className="font-medium text-gray-300">Cross-Server</p>
           <p className="text-gray-500">
-            {(evidence.cross_server as Record<string, unknown>).correlated_users} correlated users on other servers
+            {String((evidence.cross_server as Record<string, unknown>).correlated_users)} correlated users on other servers
           </p>
         </div>
       )}

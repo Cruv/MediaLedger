@@ -158,7 +158,7 @@ function UserAuditSection({ userId }: { userId: string }) {
             </span>
             <span className="flex-1 text-gray-400">
               {entry.target_label && <span className="text-gray-300">{entry.target_label}</span>}
-              {entry.details && (entry.details as Record<string, unknown>).preview && (
+              {entry.details && !!(entry.details as Record<string, unknown>).preview && (
                 <span className="ml-1 text-gray-500">
                   — {String((entry.details as Record<string, unknown>).preview).slice(0, 60)}
                 </span>

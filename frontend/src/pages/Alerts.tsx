@@ -221,9 +221,9 @@ export default function Alerts() {
                       <p className="mt-0.5 text-xs text-gray-500">
                         {new Date(event.triggered_at).toLocaleString()}
                       </p>
-                      {event.context_json?.summary && (
+                      {event.context_json && !!(event.context_json as Record<string, unknown>).summary && (
                         <p className="mt-1 text-sm text-gray-400">
-                          {String(event.context_json.summary)}
+                          {String((event.context_json as Record<string, unknown>).summary)}
                         </p>
                       )}
                     </div>
