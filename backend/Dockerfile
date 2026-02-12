@@ -2,14 +2,15 @@ FROM python:3.12-slim AS base
 
 WORKDIR /app
 
-COPY pyproject.toml .
-RUN pip install --no-cache-dir .
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
 # ------- Development target -------
 FROM base AS development
-RUN pip install --no-cache-dir ".[dev]"
+RUN pip install --no-cache-dir pytest pytest-asyncio
 EXPOSE 8000
 
 # ------- Production target -------
