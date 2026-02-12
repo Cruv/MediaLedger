@@ -14,6 +14,8 @@ from app.models.settings import AppSetting
 from app.models.tags import UserTag, UserTagAssignment
 from app.models.alerts import AlertRule, AlertEvent
 from app.models.audit import UserNote, AdminAuditLog
+from app.models.automation import AutomationRule, AutomationHistory
+from app.models.invite import InviteTemplate, InviteCode, InviteRedemption
 
 __all__ = [
     "Server",
@@ -37,4 +39,9 @@ __all__ = [
     "AlertEvent",
     "UserNote",
     "AdminAuditLog",
+    "AutomationRule",
+    "AutomationHistory",
+    "InviteTemplate",
+    "InviteCode",
+    "InviteRedemption",
 ]

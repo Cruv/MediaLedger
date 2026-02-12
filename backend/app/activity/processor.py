@@ -2,7 +2,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -181,8 +181,14 @@ class ActivityProcessor:
     async def _log_ip(
         self, db: AsyncSession, user_id: uuid.UUID, server_id: uuid.UUID, ip_address: str
     ):
-        """Upsert an IP log entry for the user."""
+        """Upsert an IP log entry for the user, enriching with geo data."""
+        from app.sharing_engine.geo import geolocate
+
         now = datetime.now(timezone.utc)
+
+        # Try to get geolocation for new IPs
+        geo = geolocate(ip_address) or {}
+
         stmt = pg_insert(IPLog).values(
             user_id=user_id,
             server_id=server_id,
@@ -190,12 +196,23 @@ class ActivityProcessor:
             first_seen_at=now,
             last_seen_at=now,
             hit_count=1,
+            geo_country=geo.get("country"),
+            geo_region=geo.get("region"),
+            geo_city=geo.get("city"),
+            geo_lat=geo.get("lat"),
+            geo_lon=geo.get("lon"),
         )
         stmt = stmt.on_conflict_do_update(
             index_elements=["user_id", "ip_address"],
             set_={
                 "last_seen_at": now,
                 "hit_count": IPLog.hit_count + 1,
+                # Fill in geo data if not already populated
+                "geo_country": func.coalesce(IPLog.geo_country, stmt.excluded.geo_country),
+                "geo_region": func.coalesce(IPLog.geo_region, stmt.excluded.geo_region),
+                "geo_city": func.coalesce(IPLog.geo_city, stmt.excluded.geo_city),
+                "geo_lat": func.coalesce(IPLog.geo_lat, stmt.excluded.geo_lat),
+                "geo_lon": func.coalesce(IPLog.geo_lon, stmt.excluded.geo_lon),
             },
         )
         await db.execute(stmt)

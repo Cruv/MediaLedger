@@ -35,9 +35,10 @@ def create_app() -> FastAPI:
     )
 
     from app.routers import (
-        alerts, audit, auth, dashboard, graphs, libraries, notifications,
-        recently_added, requests, servers, sessions, sharing, tags, users,
-        webhooks,
+        alerts, audit, auth, automation, dashboard, digest, geoip, graphs,
+        insights, invites, libraries, notifications, recently_added, requests,
+        server_health, servers, sessions, sharing, stripe_billing, tags,
+        users, webhooks,
     )
 
     # Public routes (no auth required)
@@ -58,6 +59,13 @@ def create_app() -> FastAPI:
     app.include_router(alerts.router, prefix="/api/alerts", tags=["alerts"])
     app.include_router(recently_added.router, prefix="/api/recently-added", tags=["recently-added"])
     app.include_router(audit.router, prefix="/api", tags=["audit"])
+    app.include_router(automation.router, prefix="/api/automation", tags=["automation"])
+    app.include_router(geoip.router, prefix="/api/geoip", tags=["geoip"])
+    app.include_router(digest.router, prefix="/api/digest", tags=["digest"])
+    app.include_router(insights.router, prefix="/api/insights", tags=["insights"])
+    app.include_router(invites.router, prefix="/api/invites", tags=["invites"])
+    app.include_router(server_health.router, prefix="/api/server-health", tags=["server-health"])
+    app.include_router(stripe_billing.router, prefix="/api/stripe", tags=["stripe"])
 
     @app.get("/api/health")
     async def health():

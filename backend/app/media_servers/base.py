@@ -66,6 +66,33 @@ class MediaServerClient(ABC):
         """Returns (items, total_count)."""
         ...
 
+    async def _post(self, path: str, json: dict | None = None, params: dict | None = None) -> dict | list:
+        resp = await self._get_http().post(path, json=json, params=params)
+        resp.raise_for_status()
+        if resp.status_code == 204 or not resp.content:
+            return {}
+        return resp.json()
+
+    async def get_system_info(self) -> dict:
+        """Get extended system info (health metrics)."""
+        return await self._get("/System/Info")
+
+    async def create_user(self, username: str, password: str) -> dict:
+        """Create a new user on the media server. Returns raw API response."""
+        return await self._post("/Users/New", json={"Name": username, "Password": password})
+
+    async def set_user_policy(self, user_id: str, policy: dict) -> None:
+        """Update a user's policy (library access, stream limits, etc.)."""
+        resp = await self._get_http().post(
+            f"/Users/{user_id}/Policy", json=policy
+        )
+        resp.raise_for_status()
+
+    async def get_user_policy(self, user_id: str) -> dict:
+        """Get a user's current policy."""
+        data = await self._get(f"/Users/{user_id}")
+        return data.get("Policy", {})
+
     async def close(self):
         if self._http and not self._http.is_closed:
             await self._http.aclose()

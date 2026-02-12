@@ -19,5 +19,9 @@ class Settings(BaseSettings):
     config_dir: str = "/config"
     geoip_db_path: str = "/config/data/GeoLite2-City.mmdb"
 
+    # Stripe (optional)
+    stripe_api_key: str = ""
+    stripe_webhook_secret: str = ""
+
 
 settings = Settings()

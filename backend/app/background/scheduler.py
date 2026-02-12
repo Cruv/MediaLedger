@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy import select
 
@@ -88,6 +89,33 @@ async def start_scheduler():
         trigger=IntervalTrigger(minutes=5),
         id="evaluate_alerts",
         name="Evaluate alert rules",
+        replace_existing=True,
+    )
+    # Automation rules engine
+    from app.automation.engine import run_automation
+    scheduler.add_job(
+        run_automation,
+        trigger=IntervalTrigger(minutes=5),
+        id="run_automation",
+        name="Evaluate automation rules",
+        replace_existing=True,
+    )
+    # Weekly admin digest (Mondays at 8am UTC)
+    from app.routers.digest import send_weekly_digest
+    scheduler.add_job(
+        send_weekly_digest,
+        trigger=CronTrigger(day_of_week="mon", hour=8, minute=0),
+        id="weekly_digest",
+        name="Send weekly admin digest",
+        replace_existing=True,
+    )
+    # User expiry checker (every hour)
+    from app.background.user_expiry import check_user_expiry
+    scheduler.add_job(
+        check_user_expiry,
+        trigger=IntervalTrigger(hours=1),
+        id="check_user_expiry",
+        name="Disable expired users and send reminders",
         replace_existing=True,
     )
     # Run initial sync shortly after startup

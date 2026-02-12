@@ -13,6 +13,13 @@ import Graphs from "./pages/Graphs";
 import Alerts from "./pages/Alerts";
 import SharingAnalysis from "./pages/SharingAnalysis";
 import RecentlyAdded from "./pages/RecentlyAdded";
+import Automation from "./pages/Automation";
+import GeoMap from "./pages/GeoMap";
+import Digest from "./pages/Digest";
+import Insights from "./pages/Insights";
+import ServerHealth from "./pages/ServerHealth";
+import Invites from "./pages/Invites";
+import StripeBilling from "./pages/StripeBilling";
 import AuditLog from "./pages/AuditLog";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
@@ -91,8 +98,15 @@ export default function App() {
         <Route path="/users/:id" element={<UserDetail />} />
         <Route path="/requests" element={<Requests />} />
         <Route path="/alerts" element={<Alerts />} />
+        <Route path="/automation" element={<Automation />} />
+        <Route path="/geo-map" element={<GeoMap />} />
         <Route path="/sharing" element={<SharingAnalysis />} />
         <Route path="/recently-added" element={<RecentlyAdded />} />
+        <Route path="/digest" element={<Digest />} />
+        <Route path="/insights" element={<Insights />} />
+        <Route path="/server-health" element={<ServerHealth />} />
+        <Route path="/invites" element={<Invites />} />
+        <Route path="/stripe" element={<StripeBilling />} />
         <Route path="/audit-log" element={<AuditLog />} />
         <Route path="/servers" element={<ServerManagement />} />
         <Route path="/settings" element={<Settings />} />

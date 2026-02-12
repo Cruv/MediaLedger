@@ -24,6 +24,17 @@ class MediaServerUser(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    # Expiry / invite fields (migration 006)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expiry_notified: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
+    auto_disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    invite_code_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+
+    # Stripe fields (migration 007)
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    subscription_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
     # Relationships
     server = relationship("Server", back_populates="users")
     tags = relationship("UserTag", secondary="user_tag_assignments", back_populates="users", lazy="selectin")
