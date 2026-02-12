@@ -8,7 +8,7 @@ import type {
 } from "../types/sharing";
 
 export async function fetchSharingOverview(): Promise<SharingOverview> {
-  const { data } = await client.get("/sharing");
+  const { data } = await client.get("/sharing/");
   return data;
 }
 
