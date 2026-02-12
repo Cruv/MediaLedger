@@ -26,7 +26,8 @@ RUN chmod +x /docker-entrypoint.sh
 
 ENV PUID=1000 \
     PGID=1000 \
-    TZ=Etc/UTC
+    TZ=Etc/UTC \
+    PYTHONPATH=/app
 
 VOLUME /config
 EXPOSE 8000
@@ -35,4 +36,4 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "cd /app && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

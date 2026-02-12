@@ -34,4 +34,4 @@ chown -R medialedger:medialedger /config
 chown -R medialedger:medialedger /app
 
 # Run the command as the medialedger user
-exec gosu medialedger sh -c "$@"
+exec gosu medialedger "$@"
