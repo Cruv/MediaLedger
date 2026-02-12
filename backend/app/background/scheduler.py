@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -11,6 +11,7 @@ from app.activity.processor import ActivityProcessor
 from app.db.engine import async_session_factory
 from app.media_servers.factory import get_client
 from app.models.server import Server
+from app.models.session import PlaybackSession
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,51 @@ async def poll_all_servers():
                 logger.exception("Error polling server %s (%s)", server.name, server.id)
 
 
+async def reap_stale_sessions():
+    """Clean up sessions that haven't been updated within the stale timeout."""
+    from app.config import settings
+
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=settings.session_stale_timeout_min)
+
+    async with async_session_factory() as db:
+        result = await db.execute(
+            select(PlaybackSession).where(PlaybackSession.last_activity_at < cutoff)
+        )
+        stale_sessions = result.scalars().all()
+
+        if not stale_sessions:
+            return
+
+        logger.info(
+            "Reaping %d stale sessions (timeout=%d min)",
+            len(stale_sessions),
+            settings.session_stale_timeout_min,
+        )
+
+        processor = pinger.processor
+        now = datetime.now(timezone.utc)
+
+        for session in stale_sessions:
+            play_dur = 0
+            if session.started_at:
+                play_dur = int(
+                    (now - session.started_at.replace(tzinfo=timezone.utc)).total_seconds()
+                )
+
+            if play_dur >= 120:
+                await processor.write_history(db, session)
+
+            await processor.delete_session(db, session.id)
+            logger.info(
+                "Reaped stale session %s (server=%s, play_dur=%ds)",
+                session.id,
+                session.server_id,
+                play_dur,
+            )
+
+        await db.commit()
+
+
 async def run_sharing_analysis():
     """Periodic sharing analysis for all users."""
     from app.sharing_engine.analyzer import SharingAnalyzer
@@ -73,6 +119,13 @@ async def start_scheduler():
         trigger=IntervalTrigger(minutes=60),
         id="sync_libraries",
         name="Sync library items from media servers",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        reap_stale_sessions,
+        trigger=IntervalTrigger(seconds=60),
+        id="reap_stale_sessions",
+        name="Reap stale playback sessions",
         replace_existing=True,
     )
     scheduler.add_job(

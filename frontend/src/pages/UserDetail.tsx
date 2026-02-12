@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useUser } from "../hooks/useUsers";
+import { Link2 } from "lucide-react";
+import { useUser, useLinkedUsers, useLinkUser, useUnlinkUser } from "../hooks/useUsers";
 import { useUserNotes, useCreateNote, useUpdateNote, useDeleteNote, useAuditLog } from "../hooks/useAudit";
+import { toast } from "../stores/toast";
 import StatCard from "../components/common/StatCard";
 
 function formatWatchTime(sec?: number): string {
@@ -174,6 +176,106 @@ function UserAuditSection({ userId }: { userId: string }) {
   );
 }
 
+function LinkedAccountsSection({ userId }: { userId: string }) {
+  const { data, isLoading } = useLinkedUsers(userId);
+  const linkMut = useLinkUser(userId);
+  const unlinkMut = useUnlinkUser(userId);
+
+  if (isLoading) return null;
+  if (!data || data.linked_users.length === 0) return null;
+
+  return (
+    <section>
+      <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
+        <Link2 className="h-5 w-5 text-blue-400" />
+        Linked Accounts
+        <span className="rounded-full bg-blue-900/30 px-2 py-0.5 text-xs font-medium text-blue-400">
+          {data.linked_users.length}
+        </span>
+      </h2>
+      <div className="space-y-2">
+        {data.linked_users.map((linked) => (
+          <div
+            key={linked.id}
+            className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900 p-4"
+          >
+            <div className="flex items-center gap-4">
+              <div>
+                <Link
+                  to={`/users/${linked.id}`}
+                  className="font-medium text-brand-400 hover:text-brand-300"
+                >
+                  {linked.username}
+                </Link>
+                <p className="text-sm text-gray-500">
+                  <span className="rounded bg-gray-800 px-1.5 py-0.5 text-xs text-gray-400">
+                    {linked.server_type}
+                  </span>{" "}
+                  {linked.server_name}
+                </p>
+              </div>
+              <div className="flex gap-4 text-sm text-gray-400">
+                <span>{linked.total_plays ?? 0} plays</span>
+                <span>{formatWatchTime(linked.total_watch_time_sec)}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {linked.confirmed_by_admin ? (
+                <>
+                  <span className="rounded-full bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-400">
+                    Confirmed
+                  </span>
+                  <button
+                    onClick={() =>
+                      unlinkMut.mutate(linked.id, {
+                        onSuccess: () => toast.success("Accounts unlinked"),
+                      })
+                    }
+                    disabled={unlinkMut.isPending}
+                    className="rounded border border-gray-700 px-2 py-1 text-xs text-gray-400 hover:border-red-700 hover:text-red-400 disabled:opacity-50"
+                  >
+                    Unlink
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="rounded-full bg-yellow-900/30 px-2 py-0.5 text-xs font-medium text-yellow-400">
+                    Auto-detected
+                  </span>
+                  <button
+                    onClick={() =>
+                      linkMut.mutate(linked.id, {
+                        onSuccess: () => toast.success("Link confirmed"),
+                      })
+                    }
+                    disabled={linkMut.isPending}
+                    className="rounded bg-brand-600 px-2 py-1 text-xs font-medium text-white hover:bg-brand-500 disabled:opacity-50"
+                  >
+                    Confirm Link
+                  </button>
+                  {linked.correlation_id && (
+                    <button
+                      onClick={() =>
+                        unlinkMut.mutate(linked.id, {
+                          onSuccess: () => toast.success("Link dismissed"),
+                        })
+                      }
+                      disabled={unlinkMut.isPending}
+                      className="rounded border border-gray-700 px-2 py-1 text-xs text-gray-400 hover:text-red-400 disabled:opacity-50"
+                    >
+                      Dismiss
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function UserDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: user, isLoading } = useUser(id!);
@@ -221,6 +323,9 @@ export default function UserDetail() {
         />
         <StatCard label="Devices" value={user.devices.length} />
       </div>
+
+      {/* Linked Accounts */}
+      <LinkedAccountsSection userId={id!} />
 
       {/* Notes */}
       <NotesSection userId={id!} />

@@ -14,6 +14,7 @@ export interface User {
   total_plays?: number;
   total_watch_time_sec?: number;
   tags: UserTagBrief[];
+  linked_server_count?: number;
   expires_at?: string;
   subscription_status?: string;
   invite_code_id?: string;
@@ -48,4 +49,21 @@ export interface PaginatedUsers {
   total: number;
   page: number;
   page_size: number;
+}
+
+export interface LinkedUserBrief {
+  id: string;
+  server_id: string;
+  server_name?: string;
+  server_type?: string;
+  username: string;
+  total_plays?: number;
+  total_watch_time_sec?: number;
+  correlation_id?: string;
+  correlation_type?: string;
+  confirmed_by_admin: boolean;
+}
+
+export interface LinkedUsersResponse {
+  linked_users: LinkedUserBrief[];
 }

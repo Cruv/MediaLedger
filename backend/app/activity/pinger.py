@@ -1,10 +1,12 @@
 import logging
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.activity.processor import ActivityProcessor
+from app.config import settings
 from app.media_servers.base import MediaServerClient
 from app.models.session import PlaybackSession
 
@@ -25,6 +27,7 @@ class ActivityPinger:
             current_sessions = await client.get_sessions()
         except Exception as e:
             logger.error("Failed to fetch sessions from server %s: %s", server_id, e)
+            await self._reap_stale_for_server(db, server_id)
             return
 
         # Get known active sessions from DB
@@ -51,8 +54,6 @@ class ActivityPinger:
                 # Calculate play duration, skip if too short
                 play_dur = 0
                 if known.started_at:
-                    from datetime import datetime, timezone
-
                     play_dur = int(
                         (datetime.now(timezone.utc) - known.started_at.replace(tzinfo=timezone.utc)).total_seconds()
                     )
@@ -61,5 +62,32 @@ class ActivityPinger:
                     await self.processor.write_history(db, known)
 
                 await self.processor.delete_session(db, known.id)
+
+        await db.commit()
+
+    async def _reap_stale_for_server(self, db: AsyncSession, server_id: uuid.UUID):
+        """Clean up sessions for an unreachable server that exceed the stale timeout."""
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=settings.session_stale_timeout_min)
+        result = await db.execute(
+            select(PlaybackSession).where(
+                PlaybackSession.server_id == server_id,
+                PlaybackSession.last_activity_at < cutoff,
+            )
+        )
+        stale = result.scalars().all()
+        if not stale:
+            return
+
+        now = datetime.now(timezone.utc)
+        for session in stale:
+            play_dur = 0
+            if session.started_at:
+                play_dur = int(
+                    (now - session.started_at.replace(tzinfo=timezone.utc)).total_seconds()
+                )
+            if play_dur >= 120:
+                await self.processor.write_history(db, session)
+            await self.processor.delete_session(db, session.id)
+            logger.info("Reaped stale session %s from unreachable server %s", session.id, server_id)
 
         await db.commit()

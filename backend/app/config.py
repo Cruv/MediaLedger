@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Playback
     completion_threshold_pct: float = 85.0  # % watched to count as "completed"
 
+    # Session cleanup
+    session_stale_timeout_min: int = 10  # minutes before an inactive session is reaped
+
     # Stripe (optional)
     stripe_api_key: str = ""
     stripe_webhook_secret: str = ""

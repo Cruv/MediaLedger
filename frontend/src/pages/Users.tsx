@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Link2 } from "lucide-react";
 import { useUsers } from "../hooks/useUsers";
 import { useServers } from "../hooks/useServers";
 import { useTags, useCreateTag, useDeleteTag, useAssignTag } from "../hooks/useTags";
@@ -227,6 +228,7 @@ export default function Users() {
                   </th>
                   <th className="px-4 py-3 font-medium">Username</th>
                   <th className="px-4 py-3 font-medium">Server</th>
+                  <th className="px-4 py-3 font-medium">Linked</th>
                   <th className="px-4 py-3 font-medium">Tags</th>
                   <th className="px-4 py-3 font-medium">Total Plays</th>
                   <th className="px-4 py-3 font-medium">Watch Time</th>
@@ -258,6 +260,14 @@ export default function Users() {
                         {user.server_type}
                       </span>{" "}
                       {user.server_name}
+                    </td>
+                    <td className="px-4 py-3">
+                      {(user.linked_server_count ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-900/30 px-2 py-0.5 text-[10px] font-medium text-blue-400 border border-blue-800/40">
+                          <Link2 className="h-3 w-3" />
+                          {(user.linked_server_count ?? 0) + 1} servers
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">

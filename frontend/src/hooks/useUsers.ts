@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { getUser, listUsers } from "../api/users";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getLinkedUsers, getUser, linkUser, listUsers, unlinkUser } from "../api/users";
 
 interface UseUsersParams {
   page?: number;
@@ -28,5 +28,33 @@ export function useUser(id: string) {
     queryKey: ["users", id],
     queryFn: () => getUser(id),
     enabled: !!id,
+  });
+}
+
+export function useLinkedUsers(userId: string) {
+  return useQuery({
+    queryKey: ["users", userId, "linked"],
+    queryFn: () => getLinkedUsers(userId),
+    enabled: !!userId,
+  });
+}
+
+export function useLinkUser(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (otherId: string) => linkUser(userId, otherId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users", userId, "linked"] });
+    },
+  });
+}
+
+export function useUnlinkUser(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (otherId: string) => unlinkUser(userId, otherId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users", userId, "linked"] });
+    },
   });
 }

@@ -32,6 +32,8 @@ class UserResponse(BaseModel):
     total_watch_time_sec: Optional[int] = None
     # Tags
     tags: list[UserTagBrief] = []
+    # Linked accounts
+    linked_server_count: int = 0
     # Expiry / Stripe
     expires_at: Optional[datetime] = None
     subscription_status: Optional[str] = None
@@ -67,3 +69,24 @@ class PaginatedUsers(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class LinkedUserBrief(BaseModel):
+    """Summary of a linked user on another server."""
+
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    server_id: uuid.UUID
+    server_name: Optional[str] = None
+    server_type: Optional[str] = None
+    username: str
+    total_plays: Optional[int] = None
+    total_watch_time_sec: Optional[int] = None
+    correlation_id: Optional[uuid.UUID] = None
+    correlation_type: Optional[str] = None
+    confirmed_by_admin: bool = False
+
+
+class LinkedUsersResponse(BaseModel):
+    linked_users: list[LinkedUserBrief]
