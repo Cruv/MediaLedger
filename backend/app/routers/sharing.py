@@ -20,7 +20,7 @@ from app.schemas.sharing import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 # In-memory analysis job state
 _analysis_status: dict = {"running": False, "message": None}
@@ -56,6 +56,7 @@ def _build_score_response(
     )
 
 
+@router.get("", response_model=SharingOverviewResponse)
 @router.get("/", response_model=SharingOverviewResponse)
 async def get_sharing_overview(db: AsyncSession = Depends(get_db)):
     """Get sharing scores for all analyzed users, sorted by overall score descending."""
