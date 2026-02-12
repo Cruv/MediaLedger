@@ -54,7 +54,12 @@ export default function Settings() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Settings</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Configure notification agents for Discord, Gotify, ntfy, email, and webhooks.
+        </p>
+      </div>
 
       {/* Notification Agents */}
       <section className="space-y-4">

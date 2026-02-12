@@ -39,19 +39,22 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-950">
-      <div className="w-full max-w-sm space-y-6 rounded-xl border border-gray-800 bg-gray-900 p-8">
+      {/* Subtle radial glow */}
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.08)_0%,transparent_70%)]" />
+
+      <div className="relative w-full max-w-sm space-y-6 rounded-xl border border-gray-800/80 bg-gray-900/80 p-8 shadow-2xl shadow-black/40 backdrop-blur-sm">
         <div className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-brand-600 text-lg font-bold">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-lg font-bold shadow-lg shadow-brand-900/30">
             ML
           </div>
-          <h1 className="mt-3 text-xl font-bold">MediaLedger</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="mt-3 text-xl font-bold tracking-tight">MediaLedger</h1>
+          <p className="mt-1 text-sm text-gray-500">
             {isSetup ? "Create your admin account" : "Sign in to continue"}
           </p>
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-900 bg-red-950/50 p-3 text-sm text-red-400">
+          <div className="rounded-lg border border-red-900/60 bg-red-950/40 p-3 text-sm text-red-400">
             {error}
           </div>
         )}
@@ -62,7 +65,7 @@ export default function Login() {
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+            className="w-full rounded-lg border border-gray-700/80 bg-gray-800/80 px-3 py-2.5 text-sm transition-colors focus:border-brand-500 focus:outline-none"
             required
           />
           <input
@@ -70,22 +73,31 @@ export default function Login() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+            className="w-full rounded-lg border border-gray-700/80 bg-gray-800/80 px-3 py-2.5 text-sm transition-colors focus:border-brand-500 focus:outline-none"
             required
           />
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium hover:bg-brand-500 disabled:opacity-50"
+            className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-brand-500 disabled:opacity-50"
           >
-            {loading ? "..." : isSetup ? "Create Account" : "Sign In"}
+            {loading ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                {isSetup ? "Creating..." : "Signing in..."}
+              </span>
+            ) : isSetup ? (
+              "Create Account"
+            ) : (
+              "Sign In"
+            )}
           </button>
         </form>
 
         {!isSetup && (
           <button
             onClick={() => setIsSetup(true)}
-            className="w-full text-center text-xs text-gray-500 hover:text-gray-300"
+            className="w-full text-center text-xs text-gray-500 transition-colors hover:text-gray-300"
           >
             First time? Set up admin account
           </button>

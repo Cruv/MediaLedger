@@ -38,10 +38,15 @@ export default function ServerManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Servers</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Servers</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage your Jellyfin and Emby server connections.
+          </p>
+        </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium hover:bg-brand-700"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-500"
         >
           {showForm ? "Cancel" : "Add Server"}
         </button>
@@ -118,7 +123,7 @@ export default function ServerManagement() {
           <button
             type="submit"
             disabled={addMutation.isPending}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium hover:bg-brand-500 disabled:opacity-50"
           >
             {addMutation.isPending ? "Adding..." : "Add Server"}
           </button>
@@ -127,7 +132,7 @@ export default function ServerManagement() {
 
       {/* Server list */}
       {isLoading ? (
-        <div className="py-10 text-center text-gray-500">Loading...</div>
+        <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>
       ) : !servers || servers.length === 0 ? (
         <p className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-gray-500">
           No servers configured yet. Click "Add Server" to get started.

@@ -35,7 +35,12 @@ export default function AuditLog() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Audit Log</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Audit Log</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Track all admin actions — user changes, tag management, and rule triggers.
+        </p>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
@@ -59,7 +64,7 @@ export default function AuditLog() {
       </div>
 
       {isLoading ? (
-        <div className="py-10 text-center text-gray-500">Loading...</div>
+        <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>
       ) : !data || data.items.length === 0 ? (
         <p className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-gray-500">
           No audit log entries yet. Actions will be recorded as you manage users, tags, and settings.

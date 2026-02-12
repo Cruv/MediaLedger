@@ -81,7 +81,12 @@ export default function Sessions() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Session History</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Session History</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Browse and filter all playback sessions across your servers.
+          </p>
+        </div>
         <a
           href={getExportUrl(statsFilters)}
           target="_blank"
@@ -192,7 +197,7 @@ export default function Sessions() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="py-10 text-center text-gray-500">Loading...</div>
+        <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>
       ) : !data || data.items.length === 0 ? (
         <p className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-gray-500">
           {hasFilters ? "No sessions match your filters." : "No session history yet."}

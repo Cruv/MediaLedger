@@ -179,7 +179,7 @@ export default function UserDetail() {
   const { data: user, isLoading } = useUser(id!);
 
   if (isLoading) {
-    return <div className="py-10 text-center text-gray-500">Loading user...</div>;
+    return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>;
   }
 
   if (!user) {

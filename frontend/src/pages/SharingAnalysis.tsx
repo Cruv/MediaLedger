@@ -130,7 +130,7 @@ function OverviewTab() {
   const { data, isLoading } = useSharingOverview();
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
-  if (isLoading) return <div className="py-10 text-center text-gray-500">Loading...</div>;
+  if (isLoading) return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>;
   if (!data || data.total_users_analyzed === 0)
     return (
       <p className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-gray-500">
@@ -202,7 +202,7 @@ function CorrelationsTab() {
   const confirmMut = useConfirmCorrelation();
   const dismissMut = useDismissCorrelation();
 
-  if (isLoading) return <div className="py-10 text-center text-gray-500">Loading...</div>;
+  if (isLoading) return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>;
   if (!data || data.length === 0)
     return (
       <p className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-gray-500">
@@ -296,7 +296,7 @@ function CorrelationsTab() {
 function IPAnalysisTab() {
   const { data, isLoading } = useIPOverlaps();
 
-  if (isLoading) return <div className="py-10 text-center text-gray-500">Loading...</div>;
+  if (isLoading) return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>;
   if (!data || data.length === 0)
     return (
       <p className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-gray-500">
@@ -347,7 +347,7 @@ function IPAnalysisTab() {
 function ConcurrentTab() {
   const { data, isLoading } = useConcurrentEvents();
 
-  if (isLoading) return <div className="py-10 text-center text-gray-500">Loading...</div>;
+  if (isLoading) return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>;
   if (!data || data.length === 0)
     return (
       <p className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-gray-500">

@@ -191,7 +191,7 @@ export default function Requests() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="py-10 text-center text-gray-500">Loading...</div>
+        <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>
       ) : !data || data.items.length === 0 ? (
         <p className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-gray-500">
           No requests found. Add one to start tracking.

@@ -27,13 +27,18 @@ export default function Libraries() {
   }
 
   if (isLoading) {
-    return <div className="py-10 text-center text-gray-500">Loading libraries...</div>;
+    return <div className="flex justify-center py-12"><div className="h-7 w-7 animate-spin rounded-full border-[3px] border-brand-600 border-t-transparent" /></div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Libraries</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Libraries</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Track library contents and watched progress across all servers.
+          </p>
+        </div>
         <button
           onClick={handleSync}
           disabled={syncing}
