@@ -81,42 +81,163 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
         ))}
       </div>
 
-      {!!evidence.ip && (
-        <div className="text-sm">
-          <p className="font-medium text-gray-300">IP Analysis</p>
-          <p className="text-gray-500">
-            {String((evidence.ip as Record<string, unknown>).unique_ips)} unique IPs,{" "}
-            {String((evidence.ip as Record<string, unknown>).unique_countries)} countries,{" "}
-            max distance: {String((evidence.ip as Record<string, unknown>).max_distance_km)}km
-          </p>
-        </div>
-      )}
-      {!!evidence.concurrency && (
-        <div className="text-sm">
-          <p className="font-medium text-gray-300">Concurrency</p>
-          <p className="text-gray-500">
-            {String((evidence.concurrency as Record<string, unknown>).overlapping_events)} overlapping events,{" "}
-            {String((evidence.concurrency as Record<string, unknown>).different_ip_overlaps)} from different IPs
-          </p>
-        </div>
-      )}
-      {!!evidence.device && (
-        <div className="text-sm">
-          <p className="font-medium text-gray-300">Devices</p>
-          <p className="text-gray-500">
-            {String((evidence.device as Record<string, unknown>).device_count)} devices,{" "}
-            {String((evidence.device as Record<string, unknown>).shared_device_count)} shared with other users
-          </p>
-        </div>
-      )}
-      {!!evidence.cross_server && (
-        <div className="text-sm">
-          <p className="font-medium text-gray-300">Cross-Server</p>
-          <p className="text-gray-500">
-            {String((evidence.cross_server as Record<string, unknown>).correlated_users)} correlated users on other servers
-          </p>
-        </div>
-      )}
+      {!!evidence.ip && (() => {
+        const ip = evidence.ip as Record<string, unknown>;
+        const topIps = (ip.top_ips as Array<{ ip: string; city: string | null; hits: number }>) ?? [];
+        return (
+          <div className="text-sm space-y-2">
+            <p className="font-medium text-gray-300">IP Analysis</p>
+            <p className="text-gray-500">
+              {String(ip.unique_ips)} unique IPs · {String(ip.unique_countries)} countries · {String(ip.unique_cities)} cities
+              {Number(ip.max_distance_km) > 0 && <> · max distance: {String(ip.max_distance_km)}km</>}
+              {Number(ip.vpn_count) > 0 && <> · <span className="text-yellow-400">{String(ip.vpn_count)} VPN</span></>}
+            </p>
+            {topIps.length > 0 && (
+              <div className="rounded border border-gray-800 overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-800/50 text-gray-500">
+                    <tr>
+                      <th className="px-3 py-1.5 text-left font-medium">IP Address</th>
+                      <th className="px-3 py-1.5 text-left font-medium">Location</th>
+                      <th className="px-3 py-1.5 text-right font-medium">Hits</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {topIps.map((entry) => (
+                      <tr key={entry.ip}>
+                        <td className="px-3 py-1.5 font-mono text-gray-300">{entry.ip}</td>
+                        <td className="px-3 py-1.5 text-gray-400">{entry.city ?? "—"}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-400">{entry.hits}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {!!evidence.concurrency && (() => {
+        const conc = evidence.concurrency as Record<string, unknown>;
+        const overlaps = (conc.recent_overlaps as Array<{
+          ip_a: string | null; ip_b: string | null;
+          device_a: string | null; device_b: string | null;
+          overlap_seconds: number; same_ip: boolean;
+        }>) ?? [];
+        return (
+          <div className="text-sm space-y-2">
+            <p className="font-medium text-gray-300">Concurrency</p>
+            <p className="text-gray-500">
+              {String(conc.overlapping_events)} overlapping events · {String(conc.different_ip_overlaps)} from different IPs
+              {Number(conc.max_overlap_seconds) > 0 && <> · longest: {Math.round(Number(conc.max_overlap_seconds) / 60)}min</>}
+            </p>
+            {overlaps.length > 0 && overlaps.some((o) => !o.same_ip) && (
+              <div className="rounded border border-gray-800 overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-800/50 text-gray-500">
+                    <tr>
+                      <th className="px-3 py-1.5 text-left font-medium">IP A</th>
+                      <th className="px-3 py-1.5 text-left font-medium">IP B</th>
+                      <th className="px-3 py-1.5 text-left font-medium">Device A</th>
+                      <th className="px-3 py-1.5 text-left font-medium">Device B</th>
+                      <th className="px-3 py-1.5 text-right font-medium">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {overlaps.filter((o) => !o.same_ip).slice(0, 5).map((o, i) => (
+                      <tr key={i}>
+                        <td className="px-3 py-1.5 font-mono text-gray-300">{o.ip_a ?? "—"}</td>
+                        <td className="px-3 py-1.5 font-mono text-gray-300">{o.ip_b ?? "—"}</td>
+                        <td className="px-3 py-1.5 text-gray-400 truncate max-w-[120px]">{o.device_a ?? "—"}</td>
+                        <td className="px-3 py-1.5 text-gray-400 truncate max-w-[120px]">{o.device_b ?? "—"}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-400">{Math.round(o.overlap_seconds / 60)}min</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {!!evidence.device && (() => {
+        const dev = evidence.device as Record<string, unknown>;
+        const devices = (dev.devices as Array<{
+          device_name: string | null; client_name: string | null; session_count: number;
+        }>) ?? [];
+        return (
+          <div className="text-sm space-y-2">
+            <p className="font-medium text-gray-300">Devices</p>
+            <p className="text-gray-500">
+              {String(dev.device_count)} devices · {String(dev.shared_device_count)} shared with other users
+            </p>
+            {devices.length > 0 && (
+              <div className="rounded border border-gray-800 overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-800/50 text-gray-500">
+                    <tr>
+                      <th className="px-3 py-1.5 text-left font-medium">Device</th>
+                      <th className="px-3 py-1.5 text-left font-medium">Client</th>
+                      <th className="px-3 py-1.5 text-right font-medium">Sessions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {devices.map((d, i) => (
+                      <tr key={i}>
+                        <td className="px-3 py-1.5 text-gray-300">{d.device_name ?? "Unknown"}</td>
+                        <td className="px-3 py-1.5 text-gray-400">{d.client_name ?? "—"}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-400">{d.session_count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {!!evidence.cross_server && (() => {
+        const cross = evidence.cross_server as Record<string, unknown>;
+        const correlations = (cross.correlations as Array<{
+          other_username: string; type: string; shared_count: number;
+        }>) ?? [];
+        return (
+          <div className="text-sm space-y-2">
+            <p className="font-medium text-gray-300">Cross-Server</p>
+            <p className="text-gray-500">
+              {String(cross.correlated_users)} correlated users
+              {Number(cross.ip_correlations) > 0 && <> · {String(cross.ip_correlations)} IP matches</>}
+              {Number(cross.device_correlations) > 0 && <> · {String(cross.device_correlations)} device matches</>}
+              {Number(cross.name_matches) > 0 && <> · {String(cross.name_matches)} username matches</>}
+            </p>
+            {correlations.length > 0 && (
+              <div className="rounded border border-gray-800 overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-800/50 text-gray-500">
+                    <tr>
+                      <th className="px-3 py-1.5 text-left font-medium">User</th>
+                      <th className="px-3 py-1.5 text-left font-medium">Match Type</th>
+                      <th className="px-3 py-1.5 text-right font-medium">Shared</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {correlations.map((c, i) => (
+                      <tr key={i}>
+                        <td className="px-3 py-1.5 text-brand-400">{c.other_username}</td>
+                        <td className="px-3 py-1.5 text-gray-400">{c.type.replace("_", " ")}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-400">{c.shared_count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <p className="text-xs text-gray-600">
         Analyzed: {new Date(data.analysis_window_start).toLocaleDateString()} –{" "}
