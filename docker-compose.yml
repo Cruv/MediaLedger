@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: MediaLedger-DB
+    environment:
+      POSTGRES_DB: medialedger
+      POSTGRES_USER: medialedger
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - /mnt/NVME_Pool/Docker/Stacks/medialedger/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medialedger"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/cruv/medialedger-backend:latest
+    container_name: MediaLedger-Backend
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Indianapolis
+      - DATABASE_URL=postgresql+asyncpg://medialedger:${DB_PASSWORD}@db:5432/medialedger
+      - SECRET_KEY=${SECRET_KEY}
+      - GEOIP_DB_PATH=/config/data/GeoLite2-City.mmdb
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - /mnt/NVME_Pool/Docker/Stacks/medialedger/backend:/config
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/cruv/medialedger-frontend:latest
+    container_name: MediaLedger-Frontend
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Indianapolis
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
