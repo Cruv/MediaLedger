@@ -4,10 +4,12 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.session import get_db
 from app.models.server import Server
 from app.models.session import SessionHistory
+from app.models.tags import UserTagAssignment
 from app.models.user import MediaServerUser
 from app.schemas.user import (
     PaginatedUsers,
@@ -15,6 +17,7 @@ from app.schemas.user import (
     UserDeviceResponse,
     UserResponse,
     UserSessionSummary,
+    UserTagBrief,
 )
 
 router = APIRouter()
@@ -24,6 +27,7 @@ router = APIRouter()
 async def list_users(
     server_id: Optional[uuid.UUID] = None,
     search: Optional[str] = None,
+    tag_id: Optional[uuid.UUID] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -35,6 +39,7 @@ async def list_users(
             Server.server_type.label("server_type"),
         )
         .join(Server, MediaServerUser.server_id == Server.id)
+        .options(selectinload(MediaServerUser.tags))
     )
     count_q = select(func.count(MediaServerUser.id))
 
@@ -44,6 +49,13 @@ async def list_users(
     if search:
         base = base.where(MediaServerUser.username.ilike(f"%{search}%"))
         count_q = count_q.where(MediaServerUser.username.ilike(f"%{search}%"))
+    if tag_id:
+        base = base.join(UserTagAssignment, MediaServerUser.id == UserTagAssignment.user_id).where(
+            UserTagAssignment.tag_id == tag_id
+        )
+        count_q = count_q.join(UserTagAssignment, MediaServerUser.id == UserTagAssignment.user_id).where(
+            UserTagAssignment.tag_id == tag_id
+        )
 
     total = (await db.execute(count_q)).scalar() or 0
 
@@ -52,11 +64,12 @@ async def list_users(
     result = await db.execute(query)
 
     users = []
-    for row in result.all():
+    for row in result.unique().all():
         user = row[0]
         resp = UserResponse.model_validate(user)
         resp.server_name = row[1]
         resp.server_type = row[2]
+        resp.tags = [UserTagBrief(id=t.id, name=t.name, color=t.color) for t in user.tags]
 
         # Compute play stats
         stats = await db.execute(
@@ -83,9 +96,10 @@ async def get_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
             Server.server_type.label("server_type"),
         )
         .join(Server, MediaServerUser.server_id == Server.id)
+        .options(selectinload(MediaServerUser.tags))
         .where(MediaServerUser.id == user_id)
     )
-    row = result.one_or_none()
+    row = result.unique().one_or_none()
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -93,6 +107,7 @@ async def get_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     resp = UserDetailResponse.model_validate(user)
     resp.server_name = row[1]
     resp.server_type = row[2]
+    resp.tags = [UserTagBrief(id=t.id, name=t.name, color=t.color) for t in user.tags]
 
     # Play stats
     stats = await db.execute(

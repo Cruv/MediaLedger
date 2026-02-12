@@ -26,6 +26,7 @@ class MediaServerUser(Base):
 
     # Relationships
     server = relationship("Server", back_populates="users")
+    tags = relationship("UserTag", secondary="user_tag_assignments", back_populates="users", lazy="selectin")
 
     __table_args__ = (
         {"comment": "Users as reported by media servers. One row per user per server."},

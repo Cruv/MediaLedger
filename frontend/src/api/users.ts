@@ -5,6 +5,8 @@ export async function listUsers(params?: {
   page?: number;
   page_size?: number;
   search?: string;
+  server_id?: string;
+  tag_id?: string;
 }): Promise<PaginatedUsers> {
   const { data } = await apiClient.get<PaginatedUsers>("/users/", { params });
   return data;

@@ -1,3 +1,5 @@
+import type { UserTagBrief } from "./tags";
+
 export interface User {
   id: string;
   server_id: string;
@@ -11,6 +13,7 @@ export interface User {
   server_type?: string;
   total_plays?: number;
   total_watch_time_sec?: number;
+  tags: UserTagBrief[];
 }
 
 export interface UserDevice {

@@ -5,6 +5,14 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class UserTagBrief(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    name: str
+    color: str
+
+
 class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -22,6 +30,8 @@ class UserResponse(BaseModel):
     # Computed stats
     total_plays: Optional[int] = None
     total_watch_time_sec: Optional[int] = None
+    # Tags
+    tags: list[UserTagBrief] = []
 
 
 class UserDetailResponse(UserResponse):
