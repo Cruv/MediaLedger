@@ -9,6 +9,7 @@ import LibraryDetail from "./pages/LibraryDetail";
 import Users from "./pages/Users";
 import UserDetail from "./pages/UserDetail";
 import Requests from "./pages/Requests";
+import Graphs from "./pages/Graphs";
 import SharingAnalysis from "./pages/SharingAnalysis";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
@@ -80,6 +81,7 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/sessions" element={<Sessions />} />
+        <Route path="/graphs" element={<Graphs />} />
         <Route path="/libraries" element={<Libraries />} />
         <Route path="/libraries/:id" element={<LibraryDetail />} />
         <Route path="/users" element={<Users />} />

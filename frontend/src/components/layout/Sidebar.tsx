@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   MonitorPlay,
+  BarChart3,
   Library,
   Users,
   Server,
@@ -13,6 +14,7 @@ import {
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/sessions", label: "Sessions", icon: MonitorPlay },
+  { to: "/graphs", label: "Graphs", icon: BarChart3 },
   { to: "/libraries", label: "Libraries", icon: Library },
   { to: "/users", label: "Users", icon: Users },
   { to: "/requests", label: "Requests", icon: ListChecks },
