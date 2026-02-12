@@ -26,3 +26,34 @@ export interface SharingOverview {
   low_count: number;
   scores: SharingScore[];
 }
+
+export interface Correlation {
+  id: string;
+  user_a_username: string;
+  user_a_server: string;
+  user_b_username: string;
+  user_b_server: string;
+  correlation_type: string;
+  confidence_score: number;
+  confirmed_by_admin: boolean;
+}
+
+export interface IPOverlap {
+  user_a_username: string;
+  user_b_username: string;
+  shared_ips: number;
+  shared_countries: string[];
+}
+
+export interface ConcurrentEvent {
+  id: string;
+  username: string;
+  overlap_start: string;
+  overlap_end: string;
+  ip_a: string | null;
+  ip_b: string | null;
+  device_a: string | null;
+  device_b: string | null;
+  geo_distance_km: number | null;
+  same_network: boolean;
+}

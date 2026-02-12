@@ -33,3 +33,34 @@ class SharingOverviewResponse(BaseModel):
     moderate_count: int
     low_count: int
     scores: list[SharingScoreResponse]
+
+
+class CorrelationResponse(BaseModel):
+    id: str
+    user_a_username: str
+    user_a_server: str
+    user_b_username: str
+    user_b_server: str
+    correlation_type: str
+    confidence_score: float
+    confirmed_by_admin: bool
+
+
+class IPOverlapResponse(BaseModel):
+    user_a_username: str
+    user_b_username: str
+    shared_ips: int
+    shared_countries: list[str]
+
+
+class ConcurrentEventResponse(BaseModel):
+    id: str
+    username: str
+    overlap_start: datetime
+    overlap_end: datetime
+    ip_a: Optional[str] = None
+    ip_b: Optional[str] = None
+    device_a: Optional[str] = None
+    device_b: Optional[str] = None
+    geo_distance_km: Optional[float] = None
+    same_network: bool = False
