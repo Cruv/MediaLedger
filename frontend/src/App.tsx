@@ -12,6 +12,7 @@ import Requests from "./pages/Requests";
 import Graphs from "./pages/Graphs";
 import Alerts from "./pages/Alerts";
 import SharingAnalysis from "./pages/SharingAnalysis";
+import RecentlyAdded from "./pages/RecentlyAdded";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import apiClient from "./api/client";
@@ -90,6 +91,7 @@ export default function App() {
         <Route path="/requests" element={<Requests />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/sharing" element={<SharingAnalysis />} />
+        <Route path="/recently-added" element={<RecentlyAdded />} />
         <Route path="/servers" element={<ServerManagement />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

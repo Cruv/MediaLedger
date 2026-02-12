@@ -20,6 +20,7 @@ router = APIRouter()
 VALID_TRIGGERS = [
     "on_play", "on_stop", "on_concurrent", "on_new_device",
     "sharing_alert", "request_available", "request_watched",
+    "newsletter",
 ]
 
 
