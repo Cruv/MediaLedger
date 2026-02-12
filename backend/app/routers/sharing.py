@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,6 +21,9 @@ from app.schemas.sharing import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# In-memory analysis job state
+_analysis_status: dict = {"running": False, "message": None}
 
 
 def _severity(score: float) -> str:
@@ -234,30 +238,62 @@ async def get_concurrent_events(
     ]
 
 
-@router.post("/analyze")
-async def trigger_analysis(db: AsyncSession = Depends(get_db)):
-    """Manually trigger sharing analysis for all users."""
+async def _run_analysis_background():
+    """Run sharing analysis in the background so the API stays responsive."""
+    from app.db.engine import async_session_factory
     from app.sharing_engine.analyzer import SharingAnalyzer
-    analyzer = SharingAnalyzer()
 
-    result = await db.execute(
-        select(MediaServerUser.id).where(MediaServerUser.is_disabled == False)
-    )
-    user_ids = [str(r[0]) for r in result.all()]
+    try:
+        analyzer = SharingAnalyzer()
+        async with async_session_factory() as db:
+            result = await db.execute(
+                select(MediaServerUser.id).where(MediaServerUser.is_disabled == False)
+            )
+            user_ids = [str(r[0]) for r in result.all()]
 
-    analyzed = 0
-    errors = 0
-    for uid in user_ids:
-        try:
-            await analyzer.analyze_user(db, uid)
-            analyzed += 1
-        except Exception:
-            errors += 1
-            logger.exception("Failed to analyze user %s", uid)
+            analyzed = 0
+            errors = 0
+            for uid in user_ids:
+                try:
+                    await analyzer.analyze_user(db, uid)
+                    analyzed += 1
+                except Exception:
+                    errors += 1
+                    logger.exception("Failed to analyze user %s", uid)
 
-    await db.commit()
-    logger.info("Sharing analysis complete: %d/%d users (%d errors)", analyzed, len(user_ids), errors)
-    return {"message": f"Analysis complete for {analyzed}/{len(user_ids)} users"}
+            await db.commit()
+
+        msg = f"Analysis complete for {analyzed}/{len(user_ids)} users"
+        if errors:
+            msg += f" ({errors} errors)"
+        logger.info("Sharing analysis complete: %d/%d users (%d errors)", analyzed, len(user_ids), errors)
+        _analysis_status["message"] = msg
+    except Exception:
+        logger.exception("Background analysis failed")
+        _analysis_status["message"] = "Analysis failed — check server logs"
+    finally:
+        _analysis_status["running"] = False
+
+
+@router.post("/analyze")
+async def trigger_analysis():
+    """Kick off sharing analysis in the background."""
+    if _analysis_status["running"]:
+        return {"status": "running", "message": "Analysis already in progress"}
+
+    _analysis_status["running"] = True
+    _analysis_status["message"] = None
+    asyncio.create_task(_run_analysis_background())
+    return {"status": "started", "message": "Analysis started"}
+
+
+@router.get("/analyze/status")
+async def analysis_status():
+    """Poll for analysis completion."""
+    return {
+        "running": _analysis_status["running"],
+        "message": _analysis_status["message"],
+    }
 
 
 # Keep /{user_id} last to avoid catching specific paths like /correlations

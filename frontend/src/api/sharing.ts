@@ -17,8 +17,13 @@ export async function fetchSharingDetail(userId: string): Promise<SharingScoreDe
   return data;
 }
 
-export async function triggerAnalysis(): Promise<{ message: string }> {
+export async function triggerAnalysis(): Promise<{ status: string; message: string }> {
   const { data } = await client.post("/sharing/analyze");
+  return data;
+}
+
+export async function fetchAnalysisStatus(): Promise<{ running: boolean; message: string | null }> {
+  const { data } = await client.get("/sharing/analyze/status");
   return data;
 }
 

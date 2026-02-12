@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   confirmCorrelation,
   dismissCorrelation,
+  fetchAnalysisStatus,
   fetchConcurrentEvents,
   fetchCorrelations,
   fetchIPOverlaps,
@@ -25,16 +26,18 @@ export function useSharingDetail(userId: string) {
   });
 }
 
+export function useAnalysisStatus(enabled: boolean) {
+  return useQuery({
+    queryKey: ["sharing-analysis-status"],
+    queryFn: fetchAnalysisStatus,
+    enabled,
+    refetchInterval: enabled ? 2000 : false,
+  });
+}
+
 export function useTriggerAnalysis() {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: triggerAnalysis,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["sharing-overview"] });
-      qc.invalidateQueries({ queryKey: ["sharing-correlations"] });
-      qc.invalidateQueries({ queryKey: ["sharing-ip-overlaps"] });
-      qc.invalidateQueries({ queryKey: ["sharing-concurrent-events"] });
-    },
   });
 }
 

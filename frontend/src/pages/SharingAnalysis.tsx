@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import StatCard from "../components/common/StatCard";
 import {
+  useAnalysisStatus,
   useConfirmCorrelation,
   useCorrelations,
   useConcurrentEvents,
@@ -404,25 +406,58 @@ function ConcurrentTab() {
 
 /* ─── Main Page ─── */
 export default function SharingAnalysis() {
+  const qc = useQueryClient();
   const triggerMut = useTriggerAnalysis();
   const [tab, setTab] = useState<Tab>("Overview");
+  const [polling, setPolling] = useState(false);
+  const [completionMsg, setCompletionMsg] = useState<string | null>(null);
+
+  const { data: statusData } = useAnalysisStatus(polling);
+
+  // When polling detects completion, refresh all queries and show result
+  useEffect(() => {
+    if (polling && statusData && !statusData.running && statusData.message) {
+      setPolling(false);
+      setCompletionMsg(statusData.message);
+      qc.invalidateQueries({ queryKey: ["sharing-overview"] });
+      qc.invalidateQueries({ queryKey: ["sharing-correlations"] });
+      qc.invalidateQueries({ queryKey: ["sharing-ip-overlaps"] });
+      qc.invalidateQueries({ queryKey: ["sharing-concurrent-events"] });
+    }
+  }, [polling, statusData, qc]);
+
+  const handleRunAnalysis = () => {
+    setCompletionMsg(null);
+    triggerMut.mutate(undefined, {
+      onSuccess: () => setPolling(true),
+    });
+  };
+
+  const isRunning = triggerMut.isPending || polling;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Sharing Analysis</h1>
         <button
-          onClick={() => triggerMut.mutate()}
-          disabled={triggerMut.isPending}
+          onClick={handleRunAnalysis}
+          disabled={isRunning}
           className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium hover:bg-brand-500 disabled:opacity-50"
         >
-          {triggerMut.isPending ? "Analyzing..." : "Run Analysis"}
+          {isRunning ? "Analyzing..." : "Run Analysis"}
         </button>
       </div>
 
-      {triggerMut.data && (
+      {isRunning && (
+        <div className="flex items-center gap-3 rounded-lg border border-blue-900 bg-blue-950/50 p-3 text-sm text-blue-400">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+          Analysis in progress — this may take a minute...
+        </div>
+      )}
+
+      {!isRunning && completionMsg && (
         <div className="rounded-lg border border-green-900 bg-green-950/50 p-3 text-sm text-green-400">
-          {triggerMut.data.message}
+          {completionMsg}
         </div>
       )}
 
