@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     config_dir: str = "/config"
     geoip_db_path: str = "/config/data/GeoLite2-City.mmdb"
 
+    # Playback
+    completion_threshold_pct: float = 85.0  # % watched to count as "completed"
+
     # Stripe (optional)
     stripe_api_key: str = ""
     stripe_webhook_secret: str = ""

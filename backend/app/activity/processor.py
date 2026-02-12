@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
+from app.config import settings
 from app.media_servers.models import NormalizedSession
 from app.models.library import LibraryItem
 from app.models.request import MediaRequest
@@ -139,7 +140,7 @@ class ActivityProcessor:
             runtime_ticks=known.runtime_ticks,
             position_ticks=known.position_ticks,
             watched_pct=round(watched_pct, 1),
-            completed=watched_pct >= 85.0,  # TODO: read from app_settings
+            completed=watched_pct >= settings.completion_threshold_pct,
             buffer_count=known.buffer_count,
             transcode_info=known.transcode_info,
         )

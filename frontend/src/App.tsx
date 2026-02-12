@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AppShell from "./components/layout/AppShell";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import ToastContainer from "./components/common/ToastContainer";
 import Dashboard from "./pages/Dashboard";
 import Sessions from "./pages/Sessions";
 import Users from "./pages/Users";
@@ -108,32 +109,35 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route element={<AppShell />}>
-        <Route path="/" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
-        <Route path="/sessions" element={<ErrorBoundary><Sessions /></ErrorBoundary>} />
-        <Route path="/users" element={<ErrorBoundary><Users /></ErrorBoundary>} />
-        <Route path="/users/:id" element={<LazyPage><UserDetail /></LazyPage>} />
-        <Route path="/graphs" element={<LazyPage><Graphs /></LazyPage>} />
-        <Route path="/libraries" element={<LazyPage><Libraries /></LazyPage>} />
-        <Route path="/libraries/:id" element={<LazyPage><LibraryDetail /></LazyPage>} />
-        <Route path="/requests" element={<LazyPage><Requests /></LazyPage>} />
-        <Route path="/alerts" element={<LazyPage><Alerts /></LazyPage>} />
-        <Route path="/automation" element={<LazyPage><Automation /></LazyPage>} />
-        <Route path="/geo-map" element={<LazyPage><GeoMap /></LazyPage>} />
-        <Route path="/sharing" element={<LazyPage><SharingAnalysis /></LazyPage>} />
-        <Route path="/recently-added" element={<LazyPage><RecentlyAdded /></LazyPage>} />
-        <Route path="/digest" element={<LazyPage><Digest /></LazyPage>} />
-        <Route path="/insights" element={<LazyPage><Insights /></LazyPage>} />
-        <Route path="/server-health" element={<LazyPage><ServerHealth /></LazyPage>} />
-        <Route path="/invites" element={<LazyPage><Invites /></LazyPage>} />
-        <Route path="/stripe" element={<LazyPage><StripeBilling /></LazyPage>} />
-        <Route path="/audit-log" element={<LazyPage><AuditLog /></LazyPage>} />
-        <Route path="/servers" element={<LazyPage><ServerManagement /></LazyPage>} />
-        <Route path="/settings" element={<LazyPage><Settings /></LazyPage>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route element={<AppShell />}>
+          <Route path="/" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+          <Route path="/sessions" element={<ErrorBoundary><Sessions /></ErrorBoundary>} />
+          <Route path="/users" element={<ErrorBoundary><Users /></ErrorBoundary>} />
+          <Route path="/users/:id" element={<LazyPage><UserDetail /></LazyPage>} />
+          <Route path="/graphs" element={<LazyPage><Graphs /></LazyPage>} />
+          <Route path="/libraries" element={<LazyPage><Libraries /></LazyPage>} />
+          <Route path="/libraries/:id" element={<LazyPage><LibraryDetail /></LazyPage>} />
+          <Route path="/requests" element={<LazyPage><Requests /></LazyPage>} />
+          <Route path="/alerts" element={<LazyPage><Alerts /></LazyPage>} />
+          <Route path="/automation" element={<LazyPage><Automation /></LazyPage>} />
+          <Route path="/geo-map" element={<LazyPage><GeoMap /></LazyPage>} />
+          <Route path="/sharing" element={<LazyPage><SharingAnalysis /></LazyPage>} />
+          <Route path="/recently-added" element={<LazyPage><RecentlyAdded /></LazyPage>} />
+          <Route path="/digest" element={<LazyPage><Digest /></LazyPage>} />
+          <Route path="/insights" element={<LazyPage><Insights /></LazyPage>} />
+          <Route path="/server-health" element={<LazyPage><ServerHealth /></LazyPage>} />
+          <Route path="/invites" element={<LazyPage><Invites /></LazyPage>} />
+          <Route path="/stripe" element={<LazyPage><StripeBilling /></LazyPage>} />
+          <Route path="/audit-log" element={<LazyPage><AuditLog /></LazyPage>} />
+          <Route path="/servers" element={<LazyPage><ServerManagement /></LazyPage>} />
+          <Route path="/settings" element={<LazyPage><Settings /></LazyPage>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+      <ToastContainer />
+    </>
   );
 }
