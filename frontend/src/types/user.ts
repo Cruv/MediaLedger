@@ -14,6 +14,9 @@ export interface User {
   total_plays?: number;
   total_watch_time_sec?: number;
   tags: UserTagBrief[];
+  expires_at?: string;
+  subscription_status?: string;
+  invite_code_id?: string;
 }
 
 export interface UserDevice {

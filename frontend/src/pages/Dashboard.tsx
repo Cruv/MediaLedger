@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useDashboard } from "../hooks/useDashboard";
+import { usePopularity } from "../hooks/useInsights";
 import StatCard from "../components/common/StatCard";
 import type { ActiveSession } from "../types/session";
 import type { ServerStatus } from "../types/dashboard";
@@ -117,6 +118,7 @@ type SortField = "username" | "title" | "server" | "started";
 
 export default function Dashboard() {
   const { data, isLoading, error } = useDashboard();
+  const { data: popular } = usePopularity(7);
   const [searchTerm, setSearchTerm] = useState("");
   const [serverFilter, setServerFilter] = useState("all");
   const [stateFilter, setStateFilter] = useState("all");
@@ -210,6 +212,45 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {data.server_statuses.map((s) => (
               <ServerStatusBadge key={s.id} status={s} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Popular Now */}
+      {popular && popular.items.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold">
+            <Link to="/insights" className="hover:text-brand-400">
+              Popular This Week
+            </Link>
+          </h2>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {popular.items.slice(0, 5).map((item, i) => (
+              <div
+                key={item.title}
+                className="group relative overflow-hidden rounded-lg border border-gray-800 bg-gray-900 p-3 transition-colors hover:border-gray-700"
+              >
+                <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand-600/30 text-xs font-bold text-brand-400">
+                  {i + 1}
+                </div>
+                <p className="truncate pr-8 text-sm font-medium" title={item.title}>
+                  {item.title}
+                </p>
+                <p className="mt-0.5 text-xs text-gray-500">{item.type}</p>
+                <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
+                  <span>{item.plays} plays</span>
+                  <span>{item.unique_viewers} viewers</span>
+                </div>
+                <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-gray-800">
+                  <div
+                    className="h-full rounded-full bg-brand-500/60"
+                    style={{
+                      width: `${Math.min(item.avg_watched_pct, 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </section>

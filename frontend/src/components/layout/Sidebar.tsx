@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   MonitorPlay,
@@ -22,64 +23,118 @@ import {
 } from "lucide-react";
 import { useUnresolvedCount } from "../../hooks/useAlerts";
 
-const links = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/sessions", label: "Sessions", icon: MonitorPlay },
-  { to: "/graphs", label: "Graphs", icon: BarChart3 },
-  { to: "/libraries", label: "Libraries", icon: Library },
-  { to: "/recently-added", label: "Recently Added", icon: Sparkles },
-  { to: "/users", label: "Users", icon: Users },
-  { to: "/requests", label: "Requests", icon: ListChecks },
-  { to: "/alerts", label: "Alerts", icon: Bell, badge: true },
-  { to: "/automation", label: "Automation", icon: Zap },
-  { to: "/geo-map", label: "GeoIP Map", icon: Globe },
-  { to: "/insights", label: "Insights", icon: Lightbulb },
-  { to: "/sharing", label: "Sharing", icon: ShieldAlert },
-  { to: "/server-health", label: "Server Health", icon: HeartPulse },
-  { to: "/invites", label: "Invites", icon: TicketCheck },
-  { to: "/stripe", label: "Stripe", icon: CreditCard },
-  { to: "/digest", label: "Admin Digest", icon: FileText },
-  { to: "/audit-log", label: "Audit Log", icon: ScrollText },
-  { to: "/servers", label: "Servers", icon: Server },
-  { to: "/settings", label: "Settings", icon: Settings },
+interface NavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  badge?: boolean;
+}
+
+interface NavSection {
+  title?: string;
+  items: NavItem[];
+}
+
+const sections: NavSection[] = [
+  {
+    items: [
+      { to: "/", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/sessions", label: "Sessions", icon: MonitorPlay },
+      { to: "/graphs", label: "Graphs", icon: BarChart3 },
+    ],
+  },
+  {
+    title: "Content",
+    items: [
+      { to: "/libraries", label: "Libraries", icon: Library },
+      { to: "/recently-added", label: "Recently Added", icon: Sparkles },
+      { to: "/insights", label: "Insights", icon: Lightbulb },
+      { to: "/requests", label: "Requests", icon: ListChecks },
+    ],
+  },
+  {
+    title: "Users & Access",
+    items: [
+      { to: "/users", label: "Users", icon: Users },
+      { to: "/invites", label: "Invites", icon: TicketCheck },
+      { to: "/stripe", label: "Stripe", icon: CreditCard },
+    ],
+  },
+  {
+    title: "Security",
+    items: [
+      { to: "/alerts", label: "Alerts", icon: Bell, badge: true },
+      { to: "/automation", label: "Automation", icon: Zap },
+      { to: "/sharing", label: "Sharing", icon: ShieldAlert },
+      { to: "/geo-map", label: "GeoIP Map", icon: Globe },
+    ],
+  },
+  {
+    title: "Admin",
+    items: [
+      { to: "/server-health", label: "Server Health", icon: HeartPulse },
+      { to: "/digest", label: "Admin Digest", icon: FileText },
+      { to: "/audit-log", label: "Audit Log", icon: ScrollText },
+      { to: "/servers", label: "Servers", icon: Server },
+      { to: "/settings", label: "Settings", icon: Settings },
+    ],
+  },
 ];
 
 export default function Sidebar() {
   const { data: unresolvedCount } = useUnresolvedCount();
 
   return (
-    <aside className="flex w-56 flex-col border-r border-gray-800 bg-gray-900">
-      <div className="flex h-14 items-center gap-2 border-b border-gray-800 px-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold">
+    <aside className="flex w-56 flex-col border-r border-gray-800/80 bg-gray-900/95">
+      {/* Logo */}
+      <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-gray-800/80 px-4">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold shadow-lg shadow-brand-900/30">
           ML
         </div>
-        <span className="text-lg font-semibold">MediaLedger</span>
+        <span className="text-lg font-semibold tracking-tight">MediaLedger</span>
       </div>
 
-      <nav className="flex-1 space-y-1 p-3">
-        {links.map(({ to, label, icon: Icon, badge }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/"}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-brand-600/20 text-brand-400"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-              }`
-            }
-          >
-            <Icon size={18} />
-            {label}
-            {badge && unresolvedCount && unresolvedCount > 0 ? (
-              <span className="ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                {unresolvedCount}
-              </span>
-            ) : null}
-          </NavLink>
+      {/* Scrollable nav */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2">
+        {sections.map((section, si) => (
+          <div key={si} className={si > 0 ? "mt-4" : ""}>
+            {section.title && (
+              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-600">
+                {section.title}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {section.items.map(({ to, label, icon: Icon, badge }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === "/"}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all ${
+                      isActive
+                        ? "bg-brand-600/15 text-brand-400 shadow-sm shadow-brand-900/10"
+                        : "text-gray-400 hover:bg-gray-800/70 hover:text-gray-200"
+                    }`
+                  }
+                >
+                  <Icon size={16} strokeWidth={1.75} />
+                  {label}
+                  {badge && unresolvedCount && unresolvedCount > 0 ? (
+                    <span className="ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-none text-white">
+                      {unresolvedCount}
+                    </span>
+                  ) : null}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
+
+      {/* Footer */}
+      <div className="shrink-0 border-t border-gray-800/80 px-4 py-2.5">
+        <p className="text-[10px] text-gray-600">MediaLedger v0.1.0</p>
+      </div>
     </aside>
   );
 }

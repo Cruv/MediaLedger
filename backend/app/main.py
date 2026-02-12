@@ -44,6 +44,7 @@ def create_app() -> FastAPI:
     # Public routes (no auth required)
     app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
     app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
+    app.include_router(stripe_billing.webhook_router, prefix="/api/stripe", tags=["stripe-webhook"])
 
     # Protected routes (auth enforced via get_current_user dependency if password is set)
     app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])

@@ -2,10 +2,12 @@
 
 import logging
 import secrets
+import time
 import uuid
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +22,20 @@ from app.models.tags import UserTag, UserTagAssignment
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# ── Simple in-memory rate limiter for redeem endpoint ────────
+_redeem_attempts: dict[str, list[float]] = defaultdict(list)
+RATE_LIMIT_WINDOW = 300  # 5 minutes
+RATE_LIMIT_MAX = 10  # max 10 attempts per IP per window
+
+
+def _check_rate_limit(ip: str):
+    now = time.monotonic()
+    # Prune old entries
+    _redeem_attempts[ip] = [t for t in _redeem_attempts[ip] if now - t < RATE_LIMIT_WINDOW]
+    if len(_redeem_attempts[ip]) >= RATE_LIMIT_MAX:
+        raise HTTPException(429, "Too many redemption attempts. Please try again later.")
+    _redeem_attempts[ip].append(now)
 
 
 # ── Schemas ──────────────────────────────────────────────────
@@ -162,7 +178,8 @@ async def revoke_code(code_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 # ── Redemption ───────────────────────────────────────────────
 
 @router.post("/redeem")
-async def redeem_invite(body: RedeemRequest, db: AsyncSession = Depends(get_db)):
+async def redeem_invite(body: RedeemRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    _check_rate_limit(request.client.host if request.client else "unknown")
     """
     Redeem an invite code:
     1. Validate the code

@@ -16,6 +16,8 @@ from app.models.user import MediaServerUser
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+# Separate public router for the webhook (no auth)
+webhook_router = APIRouter()
 
 
 # ── Schemas ──────────────────────────────────────────────────
@@ -30,7 +32,7 @@ class SyncSubscriptionRequest(BaseModel):
 
 # ── Webhook ──────────────────────────────────────────────────
 
-@router.post("/webhook")
+@webhook_router.post("/webhook")
 async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Receive Stripe webhook events and act on subscription changes.

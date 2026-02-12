@@ -32,6 +32,10 @@ class UserResponse(BaseModel):
     total_watch_time_sec: Optional[int] = None
     # Tags
     tags: list[UserTagBrief] = []
+    # Expiry / Stripe
+    expires_at: Optional[datetime] = None
+    subscription_status: Optional[str] = None
+    invite_code_id: Optional[uuid.UUID] = None
 
 
 class UserDetailResponse(UserResponse):

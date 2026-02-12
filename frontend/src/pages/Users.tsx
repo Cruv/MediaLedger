@@ -226,7 +226,7 @@ export default function Users() {
                   <th className="px-4 py-3 font-medium">Total Plays</th>
                   <th className="px-4 py-3 font-medium">Watch Time</th>
                   <th className="px-4 py-3 font-medium">Last Activity</th>
-                  <th className="px-4 py-3 font-medium">Role</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-800">
@@ -281,11 +281,45 @@ export default function Users() {
                         : "Never"}
                     </td>
                     <td className="px-4 py-3">
-                      {user.is_admin && (
-                        <span className="rounded bg-yellow-900/40 px-2 py-0.5 text-xs text-yellow-400">
-                          Admin
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {user.is_admin && (
+                          <span className="rounded bg-yellow-900/40 px-2 py-0.5 text-[10px] font-medium text-yellow-400">
+                            Admin
+                          </span>
+                        )}
+                        {user.is_disabled && (
+                          <span className="rounded bg-red-900/40 px-2 py-0.5 text-[10px] font-medium text-red-400">
+                            Disabled
+                          </span>
+                        )}
+                        {user.subscription_status && (
+                          <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${
+                            user.subscription_status === "active"
+                              ? "bg-green-900/40 text-green-400"
+                              : user.subscription_status === "past_due"
+                                ? "bg-yellow-900/40 text-yellow-400"
+                                : "bg-red-900/40 text-red-400"
+                          }`}>
+                            {user.subscription_status}
+                          </span>
+                        )}
+                        {user.expires_at && (
+                          <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${
+                            new Date(user.expires_at) < new Date()
+                              ? "bg-red-900/40 text-red-400"
+                              : new Date(user.expires_at) < new Date(Date.now() + 7 * 86400000)
+                                ? "bg-orange-900/40 text-orange-400"
+                                : "bg-gray-800 text-gray-400"
+                          }`}>
+                            exp {new Date(user.expires_at).toLocaleDateString()}
+                          </span>
+                        )}
+                        {user.invite_code_id && (
+                          <span className="rounded bg-brand-900/40 px-2 py-0.5 text-[10px] font-medium text-brand-400">
+                            Invited
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
