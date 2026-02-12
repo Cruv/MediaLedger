@@ -7,9 +7,11 @@ import {
   Users,
   Server,
   ListChecks,
+  Bell,
   ShieldAlert,
   Settings,
 } from "lucide-react";
+import { useUnresolvedCount } from "../../hooks/useAlerts";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -18,12 +20,15 @@ const links = [
   { to: "/libraries", label: "Libraries", icon: Library },
   { to: "/users", label: "Users", icon: Users },
   { to: "/requests", label: "Requests", icon: ListChecks },
+  { to: "/alerts", label: "Alerts", icon: Bell, badge: true },
   { to: "/sharing", label: "Sharing", icon: ShieldAlert },
   { to: "/servers", label: "Servers", icon: Server },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar() {
+  const { data: unresolvedCount } = useUnresolvedCount();
+
   return (
     <aside className="flex w-56 flex-col border-r border-gray-800 bg-gray-900">
       <div className="flex h-14 items-center gap-2 border-b border-gray-800 px-4">
@@ -34,7 +39,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
-        {links.map(({ to, label, icon: Icon }) => (
+        {links.map(({ to, label, icon: Icon, badge }) => (
           <NavLink
             key={to}
             to={to}
@@ -49,6 +54,11 @@ export default function Sidebar() {
           >
             <Icon size={18} />
             {label}
+            {badge && unresolvedCount && unresolvedCount > 0 ? (
+              <span className="ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                {unresolvedCount}
+              </span>
+            ) : null}
           </NavLink>
         ))}
       </nav>

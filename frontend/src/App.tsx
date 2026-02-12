@@ -10,6 +10,7 @@ import Users from "./pages/Users";
 import UserDetail from "./pages/UserDetail";
 import Requests from "./pages/Requests";
 import Graphs from "./pages/Graphs";
+import Alerts from "./pages/Alerts";
 import SharingAnalysis from "./pages/SharingAnalysis";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="/users" element={<Users />} />
         <Route path="/users/:id" element={<UserDetail />} />
         <Route path="/requests" element={<Requests />} />
+        <Route path="/alerts" element={<Alerts />} />
         <Route path="/sharing" element={<SharingAnalysis />} />
         <Route path="/servers" element={<ServerManagement />} />
         <Route path="/settings" element={<Settings />} />

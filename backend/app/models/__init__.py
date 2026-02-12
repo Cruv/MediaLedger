@@ -12,6 +12,7 @@ from app.models.sharing import (
 from app.models.notification import NotificationAgent, NotificationLog
 from app.models.settings import AppSetting
 from app.models.tags import UserTag, UserTagAssignment
+from app.models.alerts import AlertRule, AlertEvent
 
 __all__ = [
     "Server",
@@ -31,4 +32,6 @@ __all__ = [
     "AppSetting",
     "UserTag",
     "UserTagAssignment",
+    "AlertRule",
+    "AlertEvent",
 ]

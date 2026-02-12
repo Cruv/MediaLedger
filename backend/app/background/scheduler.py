@@ -81,6 +81,15 @@ async def start_scheduler():
         name="Run sharing detection analysis",
         replace_existing=True,
     )
+    # Alert evaluation
+    from app.alerts.evaluator import evaluate_alerts
+    scheduler.add_job(
+        evaluate_alerts,
+        trigger=IntervalTrigger(minutes=5),
+        id="evaluate_alerts",
+        name="Evaluate alert rules",
+        replace_existing=True,
+    )
     # Run initial sync shortly after startup
     scheduler.add_job(
         sync_all_users,
