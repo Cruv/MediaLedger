@@ -32,6 +32,7 @@ export default function Sessions() {
                   <th className="px-4 py-3 font-medium">User</th>
                   <th className="px-4 py-3 font-medium">Server</th>
                   <th className="px-4 py-3 font-medium">Device</th>
+                  <th className="px-4 py-3 font-medium">IP Address</th>
                   <th className="px-4 py-3 font-medium">Duration</th>
                   <th className="px-4 py-3 font-medium">Watched</th>
                   <th className="px-4 py-3 font-medium">Date</th>
@@ -48,6 +49,7 @@ export default function Sessions() {
                     <td className="px-4 py-3 text-gray-400">{h.username}</td>
                     <td className="px-4 py-3 text-gray-400">{h.server_name}</td>
                     <td className="px-4 py-3 text-gray-500">{h.device_name}</td>
+                    <td className="px-4 py-3 text-gray-500">{h.ip_address || "N/A"}</td>
                     <td className="px-4 py-3 text-gray-400">
                       {formatDuration(h.play_duration_sec)}
                     </td>

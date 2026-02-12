@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getActiveSessions, getSessionHistory } from "../api/sessions";
+import { getActiveSessions, getSessionHistory, getSessionStats } from "../api/sessions";
+import type { SessionHistoryFilters } from "../api/sessions";
 
 export function useActiveSessions() {
   return useQuery({
@@ -9,9 +10,16 @@ export function useActiveSessions() {
   });
 }
 
-export function useSessionHistory(page = 1, pageSize = 25) {
+export function useSessionHistory(filters: SessionHistoryFilters = {}) {
   return useQuery({
-    queryKey: ["sessions", "history", page, pageSize],
-    queryFn: () => getSessionHistory({ page, page_size: pageSize }),
+    queryKey: ["sessions", "history", filters],
+    queryFn: () => getSessionHistory(filters),
+  });
+}
+
+export function useSessionStats(filters: Omit<SessionHistoryFilters, "page" | "page_size"> = {}) {
+  return useQuery({
+    queryKey: ["sessions", "history", "stats", filters],
+    queryFn: () => getSessionStats(filters),
   });
 }

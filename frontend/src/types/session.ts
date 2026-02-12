@@ -17,6 +17,9 @@ export interface ActiveSession {
   username?: string;
   item_title?: string;
   item_type?: string;
+  series_name?: string;
+  season_number?: number;
+  episode_number?: number;
   server_name?: string;
 }
 
@@ -49,4 +52,12 @@ export interface PaginatedSessionHistory {
   total: number;
   page: number;
   page_size: number;
+}
+
+export interface SessionStats {
+  total_sessions: number;
+  completed_sessions: number;
+  total_watch_time_sec: number;
+  avg_watched_pct: number;
+  unique_users: number;
 }

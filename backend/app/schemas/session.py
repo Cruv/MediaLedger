@@ -32,6 +32,9 @@ class ActiveSessionResponse(BaseModel):
     username: Optional[str] = None
     item_title: Optional[str] = None
     item_type: Optional[str] = None
+    series_name: Optional[str] = None
+    season_number: Optional[int] = None
+    episode_number: Optional[int] = None
     server_name: Optional[str] = None
 
 
@@ -73,3 +76,11 @@ class PaginatedSessionHistory(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class SessionStatsResponse(BaseModel):
+    total_sessions: int
+    completed_sessions: int
+    total_watch_time_sec: int
+    avg_watched_pct: float
+    unique_users: int

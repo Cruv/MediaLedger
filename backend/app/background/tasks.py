@@ -68,16 +68,20 @@ async def sync_all_users():
 
 async def sync_all_libraries():
     """Sync library metadata and items from all active servers."""
+    logger.info("Starting library sync for all active servers")
     async with async_session_factory() as db:
         result = await db.execute(select(Server).where(Server.is_active == True))
         servers = result.scalars().all()
+        logger.info("Found %d active servers to sync", len(servers))
 
         for server in servers:
             try:
+                logger.info("Syncing libraries from %s (%s at %s)", server.name, server.server_type, server.base_url)
                 client = await get_client(
                     str(server.id), server.server_type, server.base_url, server.api_key
                 )
                 remote_libs = await client.get_libraries()
+                logger.info("Found %d libraries on %s", len(remote_libs), server.name)
 
                 for rl in remote_libs:
                     # Upsert library
@@ -167,10 +171,11 @@ async def sync_all_libraries():
                     # Update library item count and sync timestamp
                     db_lib.item_count = total_synced
                     db_lib.last_synced_at = datetime.now(timezone.utc)
+                    logger.info("  Library '%s' (%s): synced %d items", rl.name, rl.library_type, total_synced)
 
                 await db.commit()
                 logger.info(
-                    "Synced %d libraries from %s", len(remote_libs), server.name
+                    "Completed sync of %d libraries from %s", len(remote_libs), server.name
                 )
             except Exception:
                 logger.exception("Failed to sync libraries from %s", server.name)

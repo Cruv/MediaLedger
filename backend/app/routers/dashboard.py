@@ -45,6 +45,9 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
         now_playing = raw.get("NowPlayingItem", {})
         resp.item_title = now_playing.get("Name")
         resp.item_type = now_playing.get("Type")
+        resp.series_name = now_playing.get("SeriesName")
+        resp.season_number = now_playing.get("ParentIndexNumber")
+        resp.episode_number = now_playing.get("IndexNumber")
         active_streams.append(resp)
 
     # Server statuses

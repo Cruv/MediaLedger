@@ -34,3 +34,7 @@ export async function getLibraryStats(): Promise<LibraryStats> {
   const { data } = await apiClient.get<LibraryStats>("/libraries/stats");
   return data;
 }
+
+export async function triggerLibrarySync(): Promise<void> {
+  await apiClient.post("/libraries/sync");
+}

@@ -1,8 +1,30 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLibraries } from "../hooks/useLibraries";
+import { triggerLibrarySync } from "../api/libraries";
 
 export default function Libraries() {
   const { data: libraries, isLoading } = useLibraries();
+  const queryClient = useQueryClient();
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      await triggerLibrarySync();
+      // Poll for updates after delays to let the sync progress
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["libraries"] });
+      }, 5000);
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["libraries"] });
+        setSyncing(false);
+      }, 15000);
+    } catch {
+      setSyncing(false);
+    }
+  }
 
   if (isLoading) {
     return <div className="py-10 text-center text-gray-500">Loading libraries...</div>;
@@ -10,12 +32,23 @@ export default function Libraries() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Libraries</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Libraries</h1>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-50"
+        >
+          {syncing ? "Syncing..." : "Sync Now"}
+        </button>
+      </div>
 
       {!libraries || libraries.length === 0 ? (
-        <p className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-gray-500">
-          No libraries synced yet. Add a server and wait for the initial sync.
-        </p>
+        <div className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center">
+          <p className="text-gray-500">
+            No libraries synced yet. Add a server and click "Sync Now" or wait for the automatic sync (runs hourly).
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {libraries.map((lib) => {

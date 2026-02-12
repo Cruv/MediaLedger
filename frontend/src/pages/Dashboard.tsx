@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useDashboard } from "../hooks/useDashboard";
 import StatCard from "../components/common/StatCard";
@@ -33,6 +34,15 @@ function formatWatchTime(sec: number): string {
   return `${m}m`;
 }
 
+function getDisplayTitle(session: ActiveSession): string {
+  if (session.series_name) {
+    const s = session.season_number != null ? String(session.season_number).padStart(2, "0") : "??";
+    const e = session.episode_number != null ? String(session.episode_number).padStart(2, "0") : "??";
+    return `${session.series_name} - S${s}E${e} - ${session.item_title || ""}`;
+  }
+  return session.item_title || "Unknown";
+}
+
 function StreamCard({ session }: { session: ActiveSession }) {
   const progress =
     session.runtime_ticks && session.runtime_ticks > 0
@@ -43,7 +53,9 @@ function StreamCard({ session }: { session: ActiveSession }) {
     <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{session.item_title || "Unknown"}</p>
+          <p className="truncate font-medium" title={getDisplayTitle(session)}>
+            {getDisplayTitle(session)}
+          </p>
           <p className="text-sm text-gray-400">
             {session.username} &middot; {session.server_name}
           </p>
@@ -74,6 +86,9 @@ function StreamCard({ session }: { session: ActiveSession }) {
             {session.play_method ? ` (${session.play_method})` : ""}
           </span>
         </div>
+        {session.ip_address && (
+          <p className="mt-0.5 text-xs text-gray-600">{session.ip_address}</p>
+        )}
       </div>
     </div>
   );
@@ -98,8 +113,53 @@ function ServerStatusBadge({ status }: { status: ServerStatus }) {
   );
 }
 
+type SortField = "username" | "title" | "server" | "started";
+
 export default function Dashboard() {
   const { data, isLoading, error } = useDashboard();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [serverFilter, setServerFilter] = useState("all");
+  const [stateFilter, setStateFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<SortField>("username");
+
+  const filteredStreams = useMemo(() => {
+    if (!data) return [];
+    let filtered = data.active_streams;
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (s) =>
+          s.username?.toLowerCase().includes(term) ||
+          s.item_title?.toLowerCase().includes(term) ||
+          s.series_name?.toLowerCase().includes(term) ||
+          s.ip_address?.includes(term),
+      );
+    }
+
+    if (serverFilter !== "all") {
+      filtered = filtered.filter((s) => s.server_name === serverFilter);
+    }
+
+    if (stateFilter !== "all") {
+      filtered = filtered.filter((s) => s.state === stateFilter);
+    }
+
+    return [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "username":
+          return (a.username || "").localeCompare(b.username || "");
+        case "title":
+          return getDisplayTitle(a).localeCompare(getDisplayTitle(b));
+        case "server":
+          return (a.server_name || "").localeCompare(b.server_name || "");
+        case "started":
+          return new Date(b.started_at).getTime() - new Date(a.started_at).getTime();
+        default:
+          return 0;
+      }
+    });
+  }, [data, searchTerm, serverFilter, stateFilter, sortBy]);
 
   if (isLoading) {
     return (
@@ -160,16 +220,67 @@ export default function Dashboard() {
         <h2 className="mb-3 text-lg font-semibold">
           Active Streams{" "}
           <span className="text-sm font-normal text-gray-500">
-            (auto-refresh every 5s)
+            ({filteredStreams.length}
+            {filteredStreams.length !== data.active_streams.length
+              ? ` of ${data.active_streams.length}`
+              : ""}{" "}
+            &middot; auto-refresh 5s)
           </span>
         </h2>
-        {data.active_streams.length === 0 ? (
+
+        {/* Filters */}
+        {data.active_streams.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            <input
+              type="text"
+              placeholder="Search users, shows, IPs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+            />
+            <select
+              value={serverFilter}
+              onChange={(e) => setServerFilter(e.target.value)}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+            >
+              <option value="all">All Servers</option>
+              {data.server_statuses.map((s) => (
+                <option key={s.id} value={s.name}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={stateFilter}
+              onChange={(e) => setStateFilter(e.target.value)}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+            >
+              <option value="all">All States</option>
+              <option value="playing">Playing</option>
+              <option value="paused">Paused</option>
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortField)}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+            >
+              <option value="username">Sort: User</option>
+              <option value="title">Sort: Title</option>
+              <option value="server">Sort: Server</option>
+              <option value="started">Sort: Recent</option>
+            </select>
+          </div>
+        )}
+
+        {filteredStreams.length === 0 ? (
           <p className="rounded-lg border border-gray-800 bg-gray-900 p-6 text-center text-gray-500">
-            No active streams
+            {data.active_streams.length === 0
+              ? "No active streams"
+              : "No streams match your filters"}
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {data.active_streams.map((s) => (
+            {filteredStreams.map((s) => (
               <StreamCard key={s.id} session={s} />
             ))}
           </div>

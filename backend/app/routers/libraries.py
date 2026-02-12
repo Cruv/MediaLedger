@@ -19,6 +19,15 @@ from app.schemas.library import (
 router = APIRouter()
 
 
+@router.post("/sync", status_code=202)
+async def trigger_library_sync():
+    """Manually trigger a library sync for all active servers."""
+    import asyncio
+    from app.background.tasks import sync_all_libraries
+    asyncio.create_task(sync_all_libraries())
+    return {"message": "Library sync started"}
+
+
 @router.get("/", response_model=list[LibraryResponse])
 async def list_libraries(
     server_id: Optional[uuid.UUID] = None,
