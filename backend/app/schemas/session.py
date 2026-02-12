@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class ActiveSessionResponse(BaseModel):
@@ -19,6 +19,11 @@ class ActiveSessionResponse(BaseModel):
     device_id: Optional[str] = None
     client_name: Optional[str] = None
     ip_address: Optional[str] = None
+
+    @field_validator("ip_address", mode="before")
+    @classmethod
+    def coerce_ip(cls, v):
+        return str(v) if v is not None else None
     position_ticks: int
     runtime_ticks: Optional[int] = None
     started_at: datetime
@@ -48,6 +53,11 @@ class SessionHistoryResponse(BaseModel):
     device_name: Optional[str] = None
     client_name: Optional[str] = None
     ip_address: Optional[str] = None
+
+    @field_validator("ip_address", mode="before")
+    @classmethod
+    def coerce_ip(cls, v):
+        return str(v) if v is not None else None
     started_at: datetime
     stopped_at: datetime
     play_duration_sec: int
