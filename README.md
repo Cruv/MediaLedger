@@ -5,19 +5,22 @@ A self-hosted monitoring and management dashboard for **Jellyfin** and **Emby** 
 ## Features
 
 - **Real-time Dashboard** - Active streams, server status, top users, and popular content at a glance
-- **Session History** - Full playback history with search, filtering, and CSV export
+- **Session History** - Full playback history with search, sorting, filtering, and CSV export
 - **Library Tracking** - Monitor library contents, watched progress, and recently added items
-- **User Management** - Tags, bulk actions, notes, per-user audit logs, and device tracking
-- **Sharing Detection** - IP analysis, concurrent stream detection, cross-server correlation, and configurable severity scoring
+- **User Management** - Tags, bulk actions, notes, per-user audit logs, device tracking, and sortable user lists
+- **Sharing Detection** - IP analysis, concurrent stream detection, cross-server correlation, configurable severity scoring, and sortable/filterable results
+- **Cross-Server User Linking** - Auto-detect linked accounts by username across servers with admin confirm/unlink
 - **Alert Rules** - Detect concurrent streams, new devices, inactive users, watch thresholds, and sharing score violations
 - **Automation Engine** - Auto-respond to user behavior with actions like kill sessions, disable users, tag, or notify
 - **Invite System** - Template-based invite codes with auto-provisioning, library restrictions, and expiry
 - **Stripe Integration** - Link subscriptions to user access with automatic enable/disable via webhooks
 - **GeoIP Mapping** - Visualize session locations on an interactive Leaflet map
-- **Content Insights** - Unwatched content, completion rates, popularity rankings, and listening patterns
+- **Content Insights** - Unwatched content, completion rates, popularity rankings, sortable tables, and listening patterns
+- **Media Requests** - Track content requests with fulfillment detection, sortable/filterable list with stats
 - **Admin Digest** - Weekly HTML email summarizing activity, alerts, and operational health
 - **Notification Agents** - Discord, Gotify, ntfy, email (SMTP), and generic webhook support
 - **Server Health** - Live transcode load, bandwidth estimates, and system information
+- **Stale Session Cleanup** - Background reaper for orphaned sessions with pinger-side hardening
 
 ## Tech Stack
 
