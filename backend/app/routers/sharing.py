@@ -22,8 +22,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(redirect_slashes=False)
 
-# In-memory analysis job state
+# In-memory analysis job state. The lock protects the check-and-set in
+# trigger_analysis so two concurrent POSTs can't both kick off a background run.
 _analysis_status: dict = {"running": False, "message": None}
+_analysis_lock = asyncio.Lock()
 
 
 def _severity(score: float) -> str:
@@ -279,11 +281,12 @@ async def _run_analysis_background():
 @router.post("/analyze")
 async def trigger_analysis():
     """Kick off sharing analysis in the background."""
-    if _analysis_status["running"]:
-        return {"status": "running", "message": "Analysis already in progress"}
+    async with _analysis_lock:
+        if _analysis_status["running"]:
+            return {"status": "running", "message": "Analysis already in progress"}
+        _analysis_status["running"] = True
+        _analysis_status["message"] = None
 
-    _analysis_status["running"] = True
-    _analysis_status["message"] = None
     asyncio.create_task(_run_analysis_background())
     return {"status": "started", "message": "Analysis started"}
 

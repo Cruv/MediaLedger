@@ -74,34 +74,53 @@ async def list_users(
     offset = (page - 1) * page_size
     query = base.order_by(order).offset(offset).limit(page_size)
     result = await db.execute(query)
+    rows = result.unique().all()
+
+    user_ids = [row[0].id for row in rows]
+    usernames = [row[0].username for row in rows]
+
+    # Batch fetch play stats for all users on this page
+    stats_map: dict = {}
+    if user_ids:
+        stats_result = await db.execute(
+            select(
+                SessionHistory.user_id,
+                func.count(SessionHistory.id),
+                func.coalesce(func.sum(SessionHistory.play_duration_sec), 0),
+            )
+            .where(SessionHistory.user_id.in_(user_ids))
+            .group_by(SessionHistory.user_id)
+        )
+        stats_map = {r[0]: (r[1], r[2]) for r in stats_result.all()}
+
+    # Batch fetch linked server counts: for each username, count distinct
+    # servers minus the user's own server.
+    linked_map: dict = {}
+    if usernames:
+        linked_result = await db.execute(
+            select(
+                MediaServerUser.username,
+                func.count(func.distinct(MediaServerUser.server_id)),
+            )
+            .where(MediaServerUser.username.in_(usernames))
+            .group_by(MediaServerUser.username)
+        )
+        linked_map = {r[0]: r[1] for r in linked_result.all()}
 
     users = []
-    for row in result.unique().all():
+    for row in rows:
         user = row[0]
         resp = UserResponse.model_validate(user)
         resp.server_name = row[1]
         resp.server_type = row[2]
         resp.tags = [UserTagBrief(id=t.id, name=t.name, color=t.color) for t in user.tags]
 
-        # Compute play stats
-        stats = await db.execute(
-            select(
-                func.count(SessionHistory.id),
-                func.coalesce(func.sum(SessionHistory.play_duration_sec), 0),
-            ).where(SessionHistory.user_id == user.id)
-        )
-        stats_row = stats.one()
-        resp.total_plays = stats_row[0]
-        resp.total_watch_time_sec = stats_row[1]
+        plays, watch_time = stats_map.get(user.id, (0, 0))
+        resp.total_plays = plays
+        resp.total_watch_time_sec = watch_time
 
-        # Count linked servers (same username on different servers)
-        linked_count = await db.execute(
-            select(func.count(func.distinct(MediaServerUser.server_id))).where(
-                MediaServerUser.username == user.username,
-                MediaServerUser.server_id != user.server_id,
-            )
-        )
-        resp.linked_server_count = linked_count.scalar() or 0
+        # linked_map counts ALL servers with that username, including this one.
+        resp.linked_server_count = max(0, linked_map.get(user.username, 0) - 1)
 
         users.append(resp)
 
@@ -224,22 +243,41 @@ async def get_linked_users(user_id: uuid.UUID, db: AsyncSession = Depends(get_db
         other_id = c.user_b_id if c.user_a_id == user_id else c.user_a_id
         corr_map[other_id] = c
 
-    linked: list[LinkedUserBrief] = []
-    seen_ids: set[uuid.UUID] = set()
+    username_rows = username_matches.all()
+    seen_ids: set[uuid.UUID] = {row[0].id for row in username_rows}
 
-    for row in username_matches.all():
-        other_user = row[0]
-        seen_ids.add(other_user.id)
-        corr = corr_map.get(other_user.id)
+    # Fetch any correlation-only linked users (different usernames) in one query.
+    correlation_only_ids = [oid for oid in corr_map.keys() if oid not in seen_ids]
+    correlation_rows: list = []
+    if correlation_only_ids:
+        corr_result = await db.execute(
+            select(MediaServerUser, Server.name.label("server_name"), Server.server_type)
+            .join(Server, MediaServerUser.server_id == Server.id)
+            .where(MediaServerUser.id.in_(correlation_only_ids))
+        )
+        correlation_rows = list(corr_result.all())
 
-        stats = await db.execute(
+    # Batch fetch stats for every linked user id in one query.
+    all_linked_ids = [row[0].id for row in username_rows] + [row[0].id for row in correlation_rows]
+    stats_map: dict = {}
+    if all_linked_ids:
+        stats_result = await db.execute(
             select(
+                SessionHistory.user_id,
                 func.count(SessionHistory.id),
                 func.coalesce(func.sum(SessionHistory.play_duration_sec), 0),
-            ).where(SessionHistory.user_id == other_user.id)
+            )
+            .where(SessionHistory.user_id.in_(all_linked_ids))
+            .group_by(SessionHistory.user_id)
         )
-        sr = stats.one()
+        stats_map = {r[0]: (r[1], r[2]) for r in stats_result.all()}
 
+    linked: list[LinkedUserBrief] = []
+
+    for row in username_rows:
+        other_user = row[0]
+        corr = corr_map.get(other_user.id)
+        plays, watch_time = stats_map.get(other_user.id, (0, 0))
         linked.append(
             LinkedUserBrief(
                 id=other_user.id,
@@ -247,43 +285,29 @@ async def get_linked_users(user_id: uuid.UUID, db: AsyncSession = Depends(get_db
                 server_name=row[1],
                 server_type=row[2],
                 username=other_user.username,
-                total_plays=sr[0],
-                total_watch_time_sec=sr[1],
+                total_plays=plays,
+                total_watch_time_sec=watch_time,
                 correlation_id=corr.id if corr else None,
                 correlation_type=corr.correlation_type if corr else "username_match",
                 confirmed_by_admin=corr.confirmed_by_admin if corr else False,
             )
         )
 
-    # Correlation-only links (different username, manually linked)
-    for other_id, corr in corr_map.items():
-        if other_id in seen_ids:
+    for row in correlation_rows:
+        other_user = row[0]
+        corr = corr_map.get(other_user.id)
+        if not corr:
             continue
-        other_result = await db.execute(
-            select(MediaServerUser, Server.name, Server.server_type)
-            .join(Server, MediaServerUser.server_id == Server.id)
-            .where(MediaServerUser.id == other_id)
-        )
-        other_row = other_result.one_or_none()
-        if not other_row:
-            continue
-        other_user = other_row[0]
-        stats = await db.execute(
-            select(
-                func.count(SessionHistory.id),
-                func.coalesce(func.sum(SessionHistory.play_duration_sec), 0),
-            ).where(SessionHistory.user_id == other_user.id)
-        )
-        sr = stats.one()
+        plays, watch_time = stats_map.get(other_user.id, (0, 0))
         linked.append(
             LinkedUserBrief(
                 id=other_user.id,
                 server_id=other_user.server_id,
-                server_name=other_row[1],
-                server_type=other_row[2],
+                server_name=row[1],
+                server_type=row[2],
                 username=other_user.username,
-                total_plays=sr[0],
-                total_watch_time_sec=sr[1],
+                total_plays=plays,
+                total_watch_time_sec=watch_time,
                 correlation_id=corr.id,
                 correlation_type=corr.correlation_type,
                 confirmed_by_admin=corr.confirmed_by_admin,

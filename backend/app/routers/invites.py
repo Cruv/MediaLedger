@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -188,23 +188,46 @@ async def redeem_invite(body: RedeemRequest, request: Request, db: AsyncSession 
     4. Optionally set expiry date
     5. Apply auto-tags
     """
-    # Look up code
-    result = await db.execute(
-        select(InviteCode).where(InviteCode.code == body.code)
+    # Look up code and atomically claim a slot so two concurrent redemptions
+    # can't both pass the usage check. The UPDATE only succeeds for exactly
+    # one of the racing requests — the other sees 0 rows updated.
+    now = datetime.now(timezone.utc)
+    claim_stmt = (
+        update(InviteCode)
+        .where(
+            InviteCode.code == body.code,
+            InviteCode.is_active == True,
+            InviteCode.times_used < InviteCode.max_uses,
+        )
+        .values(times_used=InviteCode.times_used + 1)
+        .returning(InviteCode.id, InviteCode.template_id, InviteCode.max_uses, InviteCode.times_used, InviteCode.expires_at)
     )
-    invite = result.scalars().first()
-    if not invite:
-        raise HTTPException(404, "Invalid invite code")
-    if not invite.is_active:
-        raise HTTPException(410, "Invite code has been revoked")
-    if invite.times_used >= invite.max_uses:
+    claim = (await db.execute(claim_stmt)).first()
+    if not claim:
+        # Disambiguate the failure to give a useful error
+        lookup = await db.execute(select(InviteCode).where(InviteCode.code == body.code))
+        invite = lookup.scalars().first()
+        if not invite:
+            raise HTTPException(404, "Invalid invite code")
+        if not invite.is_active:
+            raise HTTPException(410, "Invite code has been revoked")
+        if invite.expires_at and invite.expires_at < now:
+            raise HTTPException(410, "Invite code has expired")
         raise HTTPException(410, "Invite code has reached its usage limit")
-    if invite.expires_at and invite.expires_at < datetime.now(timezone.utc):
+
+    # Rebind a minimal object for the rest of the flow. The row has already
+    # been incremented, so the suffix that deactivates the code on exhaustion
+    # runs against this same row.
+    invite_id, template_id, max_uses, times_used_after, expires_at = claim
+    if expires_at and expires_at < now:
+        # Rolling back the claim is cheap since we haven't committed yet.
+        await db.rollback()
         raise HTTPException(410, "Invite code has expired")
 
     # Load template
-    template = await db.get(InviteTemplate, invite.template_id)
+    template = await db.get(InviteTemplate, template_id)
     if not template:
+        await db.rollback()
         raise HTTPException(500, "Template missing for this invite code")
 
     # Provision on each server
@@ -252,7 +275,7 @@ async def redeem_invite(body: RedeemRequest, request: Request, db: AsyncSession 
                 is_admin=False,
                 is_disabled=False,
                 expires_at=expiry,
-                invite_code_id=invite.id,
+                invite_code_id=invite_id,
             )
             db.add(db_user)
             provisioned_servers.append(sid)
@@ -275,14 +298,18 @@ async def redeem_invite(body: RedeemRequest, request: Request, db: AsyncSession 
             logger.exception("Failed to provision user on server %s", sid)
             errors.append(f"Server {sid}: {str(e)}")
 
-    # Increment usage
-    invite.times_used += 1
-    if invite.times_used >= invite.max_uses:
-        invite.is_active = False
+    # Usage was already incremented atomically in the claim. Deactivate the
+    # code if this claim consumed the last slot.
+    if times_used_after >= max_uses:
+        await db.execute(
+            update(InviteCode)
+            .where(InviteCode.id == invite_id)
+            .values(is_active=False)
+        )
 
     # Log redemption
     redemption = InviteRedemption(
-        invite_code_id=invite.id,
+        invite_code_id=invite_id,
         username=body.username,
         server_ids_provisioned=provisioned_servers,
         status="success" if not errors else "partial",
